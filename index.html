@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogLens</title>
+    <meta name="description" content="Read and search large log files with pagination. Handles files up to 10GB entirely in your browser.">
+    
+    <meta property="og:title" content="LogLens">
+    <meta property="og:description" content="Read and search large log files with pagination. Handles files up to 10GB entirely in your browser.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://kaisingl.github.io/tool-box/tools/log-reader/">
+    <meta property="og:image" content="https://kaisingl.github.io/tool-box/assets/icons/icon-512x512.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:image:alt" content="LogLens Icon">
+    <meta property="og:site_name" content="LogLens">
+    
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="LogLens">
+    <meta name="twitter:description" content="Read and search large log files with pagination. Handles files up to 10GB entirely in your browser.">
+    <meta name="twitter:image" content="https://kaisingl.github.io/tool-box/assets/icons/icon-512x512.png">
+    
+    <link rel="image_src" href="https://kaisingl.github.io/tool-box/assets/icons/icon-60x60.png">
+    
+    <link rel="icon" type="image/png" sizes="60x60" href="../../assets/icons/icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="../../assets/icons/icon-180x180.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="../../assets/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="../../assets/icons/icon-512x512.png">
+    <link rel="icon" href="../../assets/icons/icon-180x180.png" sizes="any">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="prism-one-dark.css">
+</head>
+<body>
+    <a href="#main" class="skip-link">Skip to main content</a>
+
+    <header class="header">
+        <div class="header-inner">
+            <a href="../../index.html" class="logo">
+                <div class="logo-icon">
+                    <img src="../../assets/icons/icon-60x60.png" alt="LogLens Logo">
+                </div>
+                LogLens
+            </a>
+
+            <div class="search-container hidden">
+                <svg id="search-progress-circular" class="progress-circular" viewBox="0 0 24 24">
+                    <circle class="progress-bg" cx="12" cy="12" r="10" />
+                    <circle id="search-progress-fill" class="progress-fill" cx="12" cy="12" r="10" />
+                </svg>
+                <div class="search-input-wrapper">
+                    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input type="text" id="search-input" class="search-input" placeholder="Search in file..." autocomplete="off">
+                    <div class="search-actions">
+                        <label class="search-option" title="Match whole word">
+                            <input type="checkbox" id="option-whole-word">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="7" cy="12" r="3"/>
+                                <path d="M10 9v6"/>
+                                <circle cx="17" cy="12" r="3"/>
+                                <path d="M14 7v8"/>
+                            </svg>
+                        </label>
+                        <label class="search-option" title="Match case">
+                            <input type="checkbox" id="option-match-case">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m2 16 4.039-9.69a.5 5 0 0 1 .923 0L11 16"/>
+                                <path d="M22 9v7"/>
+                                <path d="M3.304 13h6.392"/>
+                                <circle cx="18.5" cy="12.5" r="3.5"/>
+                            </svg>
+                        </label>
+                        <button id="clear-search" class="clear-search-btn hidden" title="Clear search">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div id="match-nav-container" style="margin-top: 8px;"></div>
+            </div>
+
+            <div class="header-actions hidden">
+                <button id="highlight-toggle" class="btn btn-secondary active btn-icon" title="Toggle Syntax Highlighting">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m9 11-6 6v3h9l3-3"/>
+                        <path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/>
+                    </svg>
+                </button>
+                <button id="download-page" class="btn btn-secondary btn-icon" title="Download Current Page">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                </button>
+                <button id="toggle-side-panel" class="icon-btn" title="Search Results (B)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <line x1="15" y1="3" x2="15" y2="21"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main id="main" class="main">
+        <div id="upload-section" class="upload-section">
+            <div class="upload-header">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+                <h2 class="upload-title">Upload Log File</h2>
+            </div>
+            <div id="drop-zone" class="drop-zone">
+                <input type="file" id="upload" accept=".log,.txt,.out,.err">
+                <div class="drop-zone-content">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <p>Drag & drop your log file here</p>
+                    <span>or click to select a file</span>
+                    <small>Supports .log, .txt, .out, .err files</small>
+                </div>
+            </div>
+        </div>
+        <div class="container">
+
+            <div id="viewer-section" class="viewer-section hidden">
+                <div class="log-container">
+                    <div id="loading-overlay" class="loading-overlay">
+                        <div class="loading-content">
+                            <div class="loading-spinner"></div>
+                            <div class="loading-title">Loading...</div>
+                            <div id="loading-text" class="loading-text"></div>
+                        </div>
+                    </div>
+                    <div class="log-header">
+                        <div class="file-info file-info-compact">
+                            <span class="file-stat">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                </svg>
+                                <span id="file-name" class="file-stat-value">-</span>
+                            </span>
+                            <span class="file-stat">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="2" y="2" width="20" height="8" rx="2"/>
+                                    <rect x="2" y="14" width="20" height="8" rx="2"/>
+                                </svg>
+                                <span id="file-size">-</span>
+                            </span>
+                            <span class="file-stat">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="8" y1="6" x2="21" y2="6"/>
+                                    <line x1="8" y1="12" x2="21" y2="12"/>
+                                    <line x1="8" y1="18" x2="21" y2="18"/>
+                                    <line x1="3" y1="6" x2="3.01" y2="6"/>
+                                    <line x1="3" y1="12" x2="3.01" y2="12"/>
+                                    <line x1="3" y1="18" x2="3.01" y2="18"/>
+                                </svg>
+                                <span id="total-lines">-</span>
+                            </span>
+                        </div>
+                        <div class="lines-per-page-compact">
+                            <span class="toolbar-label">Lines:</span>
+                            <div class="select-wrapper select-compact">
+                                <select id="lines-per-page">
+                                    <option value="100">100</option>
+                                    <option value="500">500</option>
+                                    <option value="1000" selected>1000</option>
+                                    <option value="5000">5000</option>
+                                    <option value="10000">10000</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="page-nav-compact">
+                            <button id="btn-first" class="btn btn-secondary btn-icon" title="First page">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="11 17 6 12 11 7"/>
+                                    <polyline points="18 17 13 12 18 7"/>
+                                </svg>
+                            </button>
+                            <button id="btn-prev" class="btn btn-secondary btn-icon" title="Previous page">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="15 18 9 12 15 6"/>
+                                </svg>
+                            </button>
+                            <input type="number" id="page-input" class="page-input page-input-compact" value="1" min="1">
+                            <span id="page-total" class="page-total-compact">/ 1</span>
+                            <button id="btn-next" class="btn btn-secondary btn-icon" title="Next page">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="9 18 15 12 9 6"/>
+                                </svg>
+                            </button>
+                            <button id="btn-last" class="btn btn-secondary btn-icon" title="Last page">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="13 17 18 12 13 7"/>
+                                    <polyline points="6 17 11 12 6 7"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="log-content" class="log-content">
+                        <div id="log-top-anchor"></div>
+                        <div id="log-content-inner"></div>
+                        <div id="log-bottom-anchor"></div>
+                    </div>
+                    <div class="log-footer"></div>
+                </div>
+            </div>
+
+            <aside id="search-sidebar" class="search-sidebar">
+                <div class="panel-header">
+                    <h3 class="panel-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="8" y1="6" x2="21" y2="6"/>
+                            <line x1="8" y1="12" x2="21" y2="12"/>
+                            <line x1="8" y1="18" x2="21" y2="18"/>
+                            <line x1="3" y1="6" x2="3.01" y2="6"/>
+                            <line x1="3" y1="12" x2="3.01" y2="12"/>
+                            <line x1="3" y1="18" x2="3.01" y2="18"/>
+                        </svg>
+                        <span id="search-results-title-text">Search Results</span>
+                    </h3>
+                    <button id="panel-close" class="panel-close" aria-label="Close panel">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+                <div id="search-nav" class="search-nav hidden">
+                    <div class="search-nav-row1">
+                        <span id="match-counter-drawer" class="match-counter">0 of 0</span>
+                        <div class="search-nav-buttons">
+                            <button id="btn-prev-match-drawer" class="btn btn-secondary btn-icon" title="Previous (Shift+Enter)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="15 18 9 12 15 6"/>
+                                </svg>
+                            </button>
+                            <button id="btn-next-match-drawer" class="btn btn-secondary btn-icon" title="Next (Enter)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="9 18 15 12 9 6"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="search-nav-row2">
+                        <div class="pagination-group">
+                            <button id="btn-top" class="btn btn-secondary btn-icon" title="Scroll to top">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="18 15 12 9 6 15"/>
+                                </svg>
+                            </button>
+                            <button id="btn-bottom" class="btn btn-secondary btn-icon" title="Scroll to bottom">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <span id="page-info" class="page-info"></span>
+                    </div>
+                </div>
+                <div id="search-results-list" class="drawer-results">
+                    <div id="search-results-items"></div>
+                    <div id="lazy-load-indicator" class="lazy-load-indicator hidden">
+                        <div class="loading-spinner"></div>
+                        <span>Loading more...</span>
+                    </div>
+                </div>
+            </aside>
+    </main>
+
+    <footer class="footer">
+        <p class="footer-text">&copy; 2025 LogLens. Open source under GNU Affero General Public License v3.0.</p>
+    </footer>
+
+    <div id="download-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="download-title">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="download-title" class="modal-title">Download Lines</h2>
+                <button id="download-close" class="modal-close" aria-label="Close dialog">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="download-start-line" class="form-label">Start Line</label>
+                        <input type="number" id="download-start-line" class="form-input" min="1" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="download-end-line" class="form-label">End Line</label>
+                        <input type="number" id="download-end-line" class="form-input" min="1" value="1000">
+                    </div>
+                </div>
+                <p id="download-preview" class="form-preview"></p>
+                <div id="download-progress" class="download-progress hidden">
+                    <div class="progress-bar">
+                        <div id="download-progress-fill" class="progress-fill"></div>
+                    </div>
+                    <span id="download-progress-text" class="progress-text">0%</span>
+                </div>
+                <div id="download-success" class="download-success hidden">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span>Download complete!</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="download-execute" class="btn btn-primary btn-full">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Download
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-log.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
