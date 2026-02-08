@@ -687,25 +687,10 @@ async function startSearch() {
         }
 
         if (totalLines === 0 || searchResults.length === 0) {
-            searchNav.classList.add('hidden');
-            if (searchResults.length === 0 && searchTerm) {
-                searchResultsTitleText.textContent = 'No results found';
-                matchNavContainer.classList.remove('hidden');
-                matchCounterHeader.classList.add('hidden');
-                matchNoResultsHeader.classList.remove('hidden');
-                document.querySelector('#match-nav-container .match-nav-buttons').classList.add('hidden');
-            }
+            updateSearchUIState(false);
             closeDrawer();
         } else {
-            searchResultsTitleText.textContent = `Search Results (${formatNumber(searchResults.length)} matches)`;
-
-            if (drawerVisible) {
-                searchNav.classList.remove('hidden');
-            }
-            matchNavContainer.classList.remove('hidden');
-            matchCounterHeader.classList.remove('hidden');
-            matchNoResultsHeader.classList.add('hidden');
-            document.querySelector('#match-nav-container .match-nav-buttons').classList.remove('hidden');
+            updateSearchUIState(true);
 
             currentMatchIndex = -1;
             await navigateMatch(1);
@@ -853,6 +838,32 @@ function clearSearch() {
     loadPage(currentPage);
 }
 
+// Search UI State Management
+function updateSearchUIState(hasResults) {
+    if (hasResults) {
+        searchResultsTitleText.textContent = `Search Results (${formatNumber(searchResults.length)} matches)`;
+        searchNav.classList.remove('hidden');
+        matchNavContainer.classList.remove('hidden');
+        matchCounterHeader.classList.remove('hidden');
+        matchNoResultsHeader.classList.add('hidden');
+        document.querySelector('#match-nav-container .match-nav-buttons').classList.remove('hidden');
+    } else {
+        searchNav.classList.add('hidden');
+        matchNavContainer.classList.add('hidden');
+        matchCounterHeader.classList.remove('hidden');
+        matchNoResultsHeader.classList.add('hidden');
+        document.querySelector('#match-nav-container .match-nav-buttons').classList.remove('hidden');
+        
+        if (searchResults.length === 0 && searchTerm) {
+            searchResultsTitleText.textContent = 'No results found';
+            matchNavContainer.classList.remove('hidden');
+            matchCounterHeader.classList.add('hidden');
+            matchNoResultsHeader.classList.remove('hidden');
+            document.querySelector('#match-nav-container .match-nav-buttons').classList.add('hidden');
+        }
+    }
+}
+
 // Drawer Functions
 function openDrawer() {
     drawerVisible = true;
@@ -871,7 +882,7 @@ function toggleDrawer() {
         closeDrawer();
     } else {
         if (searchResults.length > 0) {
-            searchNav.classList.remove('hidden');
+            updateSearchUIState(true);
         }
         openDrawer();
     }
