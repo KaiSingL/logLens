@@ -937,11 +937,6 @@ a:hover {
   color: var(--color-text-secondary);
 }
 
-.page-info {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-
 /* ============================================
     Search Results Sidebar - Pushed Layout
     ============================================ */
@@ -1015,8 +1010,7 @@ a:hover {
     display: none;
 }
 
-.search-nav-row1,
-.search-nav-row2 {
+.search-nav-row1 {
     display: flex;
     align-items: center;
     justify-content: space-between;

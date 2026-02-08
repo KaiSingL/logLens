@@ -52,7 +52,6 @@ const loadingOverlay = document.getElementById('loading-overlay');
 const loadingText = document.getElementById('loading-text');
 const pageInput = document.getElementById('page-input');
 const pageTotal = document.getElementById('page-total');
-const pageInfo = document.getElementById('page-info');
 const searchInput = document.getElementById('search-input');
 const clearSearchBtn = document.getElementById('clear-search');
 const searchProgressFill = document.getElementById('search-progress-fill');
@@ -97,8 +96,6 @@ document.getElementById('btn-first').addEventListener('click', () => goToPage(1)
 document.getElementById('btn-prev').addEventListener('click', () => goToPage(currentPage - 1));
 document.getElementById('btn-next').addEventListener('click', () => goToPage(currentPage + 1));
 document.getElementById('btn-last').addEventListener('click', () => goToPage(getTotalPages()));
-document.getElementById('btn-top').addEventListener('click', () => scrollToTop());
-document.getElementById('btn-bottom').addEventListener('click', () => scrollToBottom());
 pageInput.addEventListener('change', handlePageInput);
 document.getElementById('download-page').addEventListener('click', openDownloadModal);
 clearSearchBtn.addEventListener('click', clearSearch);
@@ -315,7 +312,6 @@ async function loadPage(pageNum) {
         
         const lines = await readLines(startLine, endLine);
         await renderLines(lines, startLine + 1);
-        updatePageInfo(startLine + 1, endLine);
     } finally {
         hideLoading();
         updatePageButtons();
@@ -641,10 +637,6 @@ function updatePageButtons() {
     document.getElementById('btn-prev').disabled = isFirstPage;
     document.getElementById('btn-next').disabled = isLastPage;
     document.getElementById('btn-last').disabled = isLastPage;
-}
-
-function updatePageInfo(startLine, endLine) {
-    pageInfo.textContent = `Lines ${formatNumber(startLine)} - ${formatNumber(endLine)} of ${formatNumber(totalLines)}`;
 }
 
 // Search Functionality
