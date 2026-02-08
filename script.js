@@ -904,7 +904,7 @@ async function navigateMatch(direction) {
     }
     
     scrollToMatch(targetLine);
-    updateActiveResultItem();
+    await updateActiveResultItem();
 }
 
 // Scroll to a specific match in the log
