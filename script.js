@@ -1052,8 +1052,8 @@ async function updateActiveResultItem() {
 
     if (item) {
         const items = searchResultsItems.querySelectorAll('.search-result-item');
-        items.forEach((el, idx) => {
-            if (idx === currentMatchIndex) {
+        items.forEach((el) => {
+            if (parseInt(el.dataset.index) === currentMatchIndex) {
                 el.classList.add('active');
                 el.scrollIntoView({ behavior: 'instant', block: 'nearest' });
             } else {
