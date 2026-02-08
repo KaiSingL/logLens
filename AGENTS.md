@@ -164,3 +164,35 @@ logViewer/
 - **No build system**: All changes reflected immediately
 - **AGPL licensed**: Changes must be open-sourced
 - **Single CSS file**: All styles in `style.css`, no external CSS beyond Prism
+
+## Git Workflow
+
+### Commit Message Format
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+### Types
+- `feat` - New feature
+- `fix` - Bug fix
+- `docs` - Documentation only
+- `refactor` - Code restructuring
+- `migrate` - Repository/dependency migration
+- `chore` - Maintenance tasks
+
+### Example Commit Message
+
+```
+migrate(index.html): update head for private repo deployment
+
+- Remove Open Graph and Twitter image references (no public hosting)
+- Remove og:url property (private repo)
+- Update icon paths from relative ../../ to root-relative /
+- Update logo link to root path /
+- Update copyright year to 2026
+```
