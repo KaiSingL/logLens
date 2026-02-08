@@ -1265,11 +1265,11 @@ function toggleSyntaxHighlighting() {
     
     if (syntaxHighlightingEnabled) {
         toggleBtn.classList.add('active');
-        toggleSpan.textContent = 'Highlight';
+        if (toggleSpan) toggleSpan.textContent = 'Highlight';
         initPrismWorker();
     } else {
         toggleBtn.classList.remove('active');
-        toggleSpan.textContent = 'Plain';
+        if (toggleSpan) toggleSpan.textContent = 'Plain';
     }
     
     loadPage(currentPage);
