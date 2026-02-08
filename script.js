@@ -65,6 +65,10 @@ const searchNav = document.getElementById('search-nav');
 const matchCounterDrawer = document.getElementById('match-counter-drawer');
 const btnPrevMatchDrawer = document.getElementById('btn-prev-match-drawer');
 const btnNextMatchDrawer = document.getElementById('btn-next-match-drawer');
+const matchNavContainer = document.getElementById('match-nav-container');
+const matchCounterHeader = document.getElementById('match-counter-header');
+const btnPrevMatchHeader = document.getElementById('btn-prev-match-header');
+const btnNextMatchHeader = document.getElementById('btn-next-match-header');
 const searchResultsItems = document.getElementById('search-results-items');
 const searchResultsTitleText = document.getElementById('search-results-title-text');
 const lazyLoadIndicator = document.getElementById('lazy-load-indicator');
@@ -112,6 +116,16 @@ btnPrevMatchDrawer.addEventListener('click', (e) => {
     navigateMatch(-1);
 });
 btnNextMatchDrawer.addEventListener('click', (e) => {
+    e.stopPropagation();
+    navigateMatch(1);
+});
+
+// Header navigation
+btnPrevMatchHeader.addEventListener('click', (e) => {
+    e.stopPropagation();
+    navigateMatch(-1);
+});
+btnNextMatchHeader.addEventListener('click', (e) => {
     e.stopPropagation();
     navigateMatch(1);
 });
@@ -673,17 +687,19 @@ async function startSearch() {
 
         if (totalLines === 0 || searchResults.length === 0) {
             searchNav.classList.add('hidden');
+            matchNavContainer.classList.add('hidden');
             if (searchResults.length === 0 && searchTerm) {
                 searchResultsTitleText.textContent = 'No results found';
             }
             closeDrawer();
         } else {
             searchResultsTitleText.textContent = `Search Results (${formatNumber(searchResults.length)} matches)`;
-            
+
             if (drawerVisible) {
                 searchNav.classList.remove('hidden');
             }
-            
+            matchNavContainer.classList.remove('hidden');
+
             currentMatchIndex = -1;
             await navigateMatch(1);
             await populateSearchResults();
@@ -813,6 +829,7 @@ function clearSearch() {
     searchInput.value = '';
     clearSearchBtn.classList.add('hidden');
     searchNav.classList.add('hidden');
+    matchNavContainer.classList.add('hidden');
     lazyLoadIndicator.classList.add('hidden');
     searchProgressFill.style.strokeDashoffset = CIRCUMFERENCE;
     searchProgressEl.classList.remove('active');
@@ -905,6 +922,7 @@ function scrollToBottom() {
 function updateMatchCounter() {
     const text = searchResults.length === 0 ? 'No matches' : `${currentMatchIndex + 1} of ${searchResults.length}`;
     matchCounterDrawer.textContent = text;
+    matchCounterHeader.textContent = text;
 }
 
 // Read a single line by line number
