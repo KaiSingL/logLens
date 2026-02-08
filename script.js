@@ -67,6 +67,7 @@ const btnPrevMatchDrawer = document.getElementById('btn-prev-match-drawer');
 const btnNextMatchDrawer = document.getElementById('btn-next-match-drawer');
 const matchNavContainer = document.getElementById('match-nav-container');
 const matchCounterHeader = document.getElementById('match-counter-header');
+const matchNoResultsHeader = document.getElementById('match-no-results-header');
 const btnPrevMatchHeader = document.getElementById('btn-prev-match-header');
 const btnNextMatchHeader = document.getElementById('btn-next-match-header');
 const searchResultsItems = document.getElementById('search-results-items');
@@ -687,9 +688,12 @@ async function startSearch() {
 
         if (totalLines === 0 || searchResults.length === 0) {
             searchNav.classList.add('hidden');
-            matchNavContainer.classList.add('hidden');
             if (searchResults.length === 0 && searchTerm) {
                 searchResultsTitleText.textContent = 'No results found';
+                matchNavContainer.classList.remove('hidden');
+                matchCounterHeader.classList.add('hidden');
+                matchNoResultsHeader.classList.remove('hidden');
+                document.querySelector('#match-nav-container .match-nav-buttons').classList.add('hidden');
             }
             closeDrawer();
         } else {
@@ -699,6 +703,9 @@ async function startSearch() {
                 searchNav.classList.remove('hidden');
             }
             matchNavContainer.classList.remove('hidden');
+            matchCounterHeader.classList.remove('hidden');
+            matchNoResultsHeader.classList.add('hidden');
+            document.querySelector('#match-nav-container .match-nav-buttons').classList.remove('hidden');
 
             currentMatchIndex = -1;
             await navigateMatch(1);
@@ -830,6 +837,9 @@ function clearSearch() {
     clearSearchBtn.classList.add('hidden');
     searchNav.classList.add('hidden');
     matchNavContainer.classList.add('hidden');
+    matchCounterHeader.classList.remove('hidden');
+    matchNoResultsHeader.classList.add('hidden');
+    document.querySelector('#match-nav-container .match-nav-buttons').classList.remove('hidden');
     lazyLoadIndicator.classList.add('hidden');
     searchProgressFill.style.strokeDashoffset = CIRCUMFERENCE;
     searchProgressEl.classList.remove('active');
