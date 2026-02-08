@@ -1352,6 +1352,17 @@ a:hover {
   box-shadow: 0 0 0 3px var(--color-accent-muted);
 }
 
+.form-input::-webkit-outer-spin-button,
+.form-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.form-input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 .form-preview {
   font-family: var(--font-mono);
   font-size: 13px;

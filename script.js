@@ -137,7 +137,11 @@ panelClose.addEventListener('click', closeDrawer);
 
 // Download modal handlers
 downloadClose.addEventListener('click', closeDownloadModal);
-downloadBackdrop.addEventListener('click', closeDownloadModal);
+downloadBackdrop.addEventListener('click', (e) => {
+    if (e.target === downloadBackdrop) {
+        closeDownloadModal();
+    }
+});
 downloadStartLine.addEventListener('input', updateDownloadPreview);
 downloadEndLine.addEventListener('input', updateDownloadPreview);
 downloadExecute.addEventListener('click', executeDownload);
