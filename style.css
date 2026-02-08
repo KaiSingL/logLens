@@ -326,6 +326,8 @@ a:hover {
 }
 
 .match-counter {
+  font-family: var(--font-mono);
+  font-size: 12px;
   color: var(--color-text-secondary);
   min-width: 60px;
 }
