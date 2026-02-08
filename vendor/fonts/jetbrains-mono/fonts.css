@@ -1,0 +1,18 @@
+/* JetBrains Mono - Local Font Declarations */
+/* Downloaded from: https://github.com/JetBrains/JetBrainsMono/releases/tag/v2.304 */
+
+@font-face {
+    font-family: 'JetBrains Mono';
+    src: url('JetBrainsMono-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'JetBrains Mono';
+    src: url('JetBrainsMono-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}

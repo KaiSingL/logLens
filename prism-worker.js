@@ -4,10 +4,10 @@
 // Disable Prism's default worker message handling in worker context
 self.Prism = { disableWorkerMessageHandler: true };
 
-// Import Prism in worker context
+// Import Prism in worker context (local vendor files for offline support)
 importScripts(
-    'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-log.min.js'
+    'vendor/prism/prism.min.js',
+    'vendor/prism/components/prism-log.min.js'
 );
 
 /**

@@ -9,7 +9,8 @@ This file provides guidelines for AI agents working on the LogLens codebase.
 - **Type**: Single-page web application (vanilla JavaScript)
 - **License**: AGPL v3
 - **Tech Stack**: Vanilla ES6+, CSS Custom Properties, HTML5, Web Workers
-- **Dependencies**: Prism.js (loaded via CDN)
+- **Dependencies**: Prism.js (v1.29.0, vendored), JetBrains Mono (v2.304, vendored)
+- **Offline Support**: Fully offline capable - all dependencies are vendored
 
 ## Build & Development Commands
 
@@ -154,8 +155,18 @@ logViewer/
 ├── search-worker.js   # Search Web Worker
 ├── LICENSE            # AGPL v3
 ├── AGENTS.md         # This file
-└── assets/
-    └── icons/         # App icons (16x16 to 512x512)
+├── assets/
+│   └── icons/         # App icons (16x16 to 512x512)
+└── vendor/            # Third-party dependencies (offline capable)
+    ├── fonts/
+    │   └── jetbrains-mono/   # JetBrains Mono v2.304
+    │       ├── JetBrainsMono-Regular.woff2
+    │       ├── JetBrainsMono-Bold.woff2
+    │       └── fonts.css
+    └── prism/                # Prism.js v1.29.0
+        ├── prism.min.js
+        └── components/
+            └── prism-log.min.js
 ```
 
 ## Important Constraints
