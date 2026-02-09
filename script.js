@@ -812,10 +812,9 @@ async function startSearch() {
 
 async function searchWithWorker(term) {
     const jobId = ++searchJobId;
-    const CHUNK_SIZE = 1024 * 1024;
-    let totalChunks = Math.ceil(currentFile.size / CHUNK_SIZE);
-    let processedChunks = 0;
-    let lastLineIndex = 0;
+    const LINES_PER_BATCH = 5000;
+    let totalBatches = Math.ceil(totalLines / LINES_PER_BATCH);
+    let processedBatches = 0;
 
     const jobPromise = new Promise((resolve, reject) => {
         pendingSearchJobs.set(jobId, { resolve, reject, results: [] });
@@ -829,28 +828,25 @@ async function searchWithWorker(term) {
         matchCase
     });
 
-    for (let pos = 0; pos < currentFile.size; pos += CHUNK_SIZE) {
+    for (let batchStart = 0; batchStart < totalLines; batchStart += LINES_PER_BATCH) {
         if (searchAbortController.signal.aborted) {
             throw new Error('AbortError');
         }
 
-        const chunkEnd = Math.min(pos + CHUNK_SIZE, currentFile.size);
-        const chunk = await currentFile.slice(pos, chunkEnd).text();
-
-        while (lastLineIndex < lineIndex.length && lineIndex[lastLineIndex] < pos) {
-            lastLineIndex++;
-        }
-        const startLine = lastLineIndex;
+        const batchEnd = Math.min(batchStart + LINES_PER_BATCH, totalLines);
+        const startPos = lineIndex[batchStart];
+        const endPos = lineIndex[batchEnd] || currentFile.size;
+        const chunk = await currentFile.slice(startPos, endPos).text();
 
         searchWorker.postMessage({
             type: 'chunk',
             id: jobId,
             chunk,
-            startLine
+            startLine: batchStart
         });
 
-        processedChunks++;
-        const progress = Math.round((processedChunks / totalChunks) * 100);
+        processedBatches++;
+        const progress = Math.round((processedBatches / totalBatches) * 100);
         searchProgressFill.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress / 100);
     }
 
@@ -865,46 +861,29 @@ async function searchOnMainThread(term) {
     if (matchWholeWord) pattern = `\\b${pattern}\\b`;
     const regex = new RegExp(pattern, regexFlags);
 
-    const CHUNK_SIZE = 1024 * 1024;
-    let totalChunks = Math.ceil(currentFile.size / CHUNK_SIZE);
-    let processedChunks = 0;
-    let lastLineIndex = 0;
-    let hasTrailingNewline = true;
+    const LINES_PER_BATCH = 5000;
+    let totalBatches = Math.ceil(totalLines / LINES_PER_BATCH);
+    let processedBatches = 0;
 
-    for (let pos = 0; pos < currentFile.size; pos += CHUNK_SIZE) {
+    for (let batchStart = 0; batchStart < totalLines; batchStart += LINES_PER_BATCH) {
         if (searchAbortController.signal.aborted) {
             throw new Error('AbortError');
         }
 
-        const chunkEnd = Math.min(pos + CHUNK_SIZE, currentFile.size);
-        const chunk = await currentFile.slice(pos, chunkEnd).text();
+        const batchEnd = Math.min(batchStart + LINES_PER_BATCH, totalLines);
+        const startPos = lineIndex[batchStart];
+        const endPos = lineIndex[batchEnd] || currentFile.size;
+        const chunk = await currentFile.slice(startPos, endPos).text();
 
-        while (lastLineIndex < lineIndex.length && lineIndex[lastLineIndex] < pos) {
-            lastLineIndex++;
-        }
-        const startLine = lastLineIndex;
-
-        hasTrailingNewline = chunk.length > 0 && (chunk[chunk.length - 1] === '\n' || chunk[chunk.length - 1] === '\r');
-
-        let lineStart = 0;
-        let currentLine = startLine;
-        for (let i = 0; i < chunk.length; i++) {
-            if (chunk[i] === '\n') {
-                const line = chunk.slice(lineStart, i);
-                if (regex.test(line)) {
-                    searchResults.push(currentLine);
-                }
-                currentLine++;
-                lineStart = i + 1;
+        const lines = chunk.split(/\r?\n/);
+        lines.forEach((line, idx) => {
+            if (regex.test(line)) {
+                searchResults.push(batchStart + idx);
             }
-        }
-        
-        if (lineStart < chunk.length && !hasTrailingNewline) {
-            currentLine++;
-        }
+        });
 
-        processedChunks++;
-        const progress = Math.round((processedChunks / totalChunks) * 100);
+        processedBatches++;
+        const progress = Math.round((processedBatches / totalBatches) * 100);
         searchProgressFill.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress / 100);
     }
 }
