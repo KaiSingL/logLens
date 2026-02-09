@@ -422,7 +422,7 @@ a:hover {
 .main {
   display: flex;
   flex-direction: column;
-  padding: var(--spacing-md) var(--spacing-xl) 40px;
+  padding: var(--spacing-md) var(--spacing-md) 40px;
   max-width: 1600px;
   margin: 0 auto;
   flex: 1;
@@ -740,7 +740,6 @@ a:hover {
     border-radius: var(--radius-lg);
     overflow: hidden;
     position: relative;
-    margin-top: var(--spacing-md);
     flex: 1;
     min-height: 0;
 }
@@ -1098,7 +1097,6 @@ a:hover {
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    margin-top: var(--spacing-md);
     border-radius: var(--radius-lg);
 }
 
