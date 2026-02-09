@@ -76,7 +76,10 @@
                     </div>
                 </div>
                 <div id="match-nav-container" class="match-nav hidden">
-                    <span id="match-counter-header" class="match-counter">0 of 0</span>
+                    <div class="match-nav-input-group">
+                        <input id="match-counter-header" class="match-counter-input" type="number" min="1">
+                        <span class="match-counter-total">of <span id="match-total-header">0</span></span>
+                    </div>
                     <span id="match-no-results-header" class="match-no-results hidden">No results</span>
                     <div class="match-nav-buttons">
                         <button id="btn-prev-match-header" class="btn btn-secondary btn-icon" title="Previous (Shift+Enter)">
@@ -257,7 +260,10 @@
                 </div>
                 <div id="search-nav" class="search-nav hidden">
                     <div class="search-nav-row1">
-                        <span id="match-counter-drawer" class="match-counter">0 of 0</span>
+                        <div class="match-nav-input-group">
+                            <input id="match-counter-drawer" class="match-counter-input" type="number" min="1">
+                            <span class="match-counter-total">of <span id="match-total-drawer">0</span></span>
+                        </div>
                         <div class="search-nav-buttons">
                             <button id="btn-prev-match-drawer" class="btn btn-secondary btn-icon" title="Previous (Shift+Enter)">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

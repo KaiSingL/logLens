@@ -326,11 +326,41 @@ a:hover {
   display: none;
 }
 
-.match-counter {
+.match-nav-input-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.match-counter-input {
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--color-text-secondary);
-  min-width: 60px;
+  width: 32px;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+.match-counter-input::-webkit-outer-spin-button,
+.match-counter-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.match-counter-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  background: var(--color-bg-secondary);
+}
+
+.match-counter-total {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-secondary);
 }
 
 .match-no-results {

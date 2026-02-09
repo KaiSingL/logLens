@@ -71,6 +71,8 @@ const matchCounterHeader = document.getElementById('match-counter-header');
 const matchNoResultsHeader = document.getElementById('match-no-results-header');
 const btnPrevMatchHeader = document.getElementById('btn-prev-match-header');
 const btnNextMatchHeader = document.getElementById('btn-next-match-header');
+const matchTotalHeader = document.getElementById('match-total-header');
+const matchTotalDrawer = document.getElementById('match-total-drawer');
 const searchResultsItems = document.getElementById('search-results-items');
 const searchResultsTitleText = document.getElementById('search-results-title-text');
 const lazyLoadIndicator = document.getElementById('lazy-load-indicator');
@@ -129,6 +131,25 @@ btnPrevMatchHeader.addEventListener('click', (e) => {
 btnNextMatchHeader.addEventListener('click', (e) => {
     e.stopPropagation();
     navigateMatch(1);
+});
+
+// Match counter input handlers
+matchCounterDrawer.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        goToMatch(matchCounterDrawer.value);
+        matchCounterDrawer.blur();
+    }
+});
+
+matchCounterHeader.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        goToMatch(matchCounterHeader.value);
+        matchCounterHeader.blur();
+    }
 });
 
 // Drawer toggle
@@ -206,7 +227,10 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && e.shiftKey && searchResults.length > 0) {
         e.preventDefault();
         navigateMatch(-1);
-    } else if (e.key === 'Enter' && searchResults.length > 0 && document.activeElement !== searchInput) {
+    } else if (e.key === 'Enter' && searchResults.length > 0 && 
+               document.activeElement !== searchInput &&
+               document.activeElement !== matchCounterDrawer &&
+               document.activeElement !== matchCounterHeader) {
         e.preventDefault();
         navigateMatch(1);
     }
@@ -996,6 +1020,37 @@ async function navigateMatch(direction) {
     await updateActiveResultItem();
 }
 
+// Jump to a specific match by number
+async function goToMatch(matchNumber) {
+    if (searchResults.length === 0 || totalLines === 0) return;
+    
+    const index = parseInt(matchNumber, 10) - 1;
+    
+    if (isNaN(index) || index < 0 || index >= searchResults.length) {
+        updateMatchCounter();
+        return;
+    }
+    
+    currentMatchIndex = index;
+    
+    const targetLine = searchResults[currentMatchIndex] + 1;
+    const targetPage = Math.floor(targetLine / linesPerPage) + 1;
+    
+    updateMatchCounter();
+    
+    if (targetPage !== currentPage) {
+        await loadPage(targetPage);
+    } else {
+        const startLine = (currentPage - 1) * linesPerPage;
+        const endLine = Math.min(startLine + linesPerPage, totalLines);
+        const lines = await readLines(startLine, endLine);
+        await renderLines(lines, startLine + 1);
+    }
+    
+    scrollToMatch(targetLine);
+    await updateActiveResultItem();
+}
+
 // Scroll to a specific match in the log
 function scrollToMatch(lineNum) {
     const logLines = logContainer.querySelectorAll('.log-line');
@@ -1019,9 +1074,17 @@ function scrollToBottom() {
 
 // Update match counter display
 function updateMatchCounter() {
-    const text = searchResults.length === 0 ? 'No matches' : `${currentMatchIndex + 1} of ${searchResults.length}`;
-    matchCounterDrawer.textContent = text;
-    matchCounterHeader.textContent = text;
+    if (searchResults.length === 0) {
+        matchCounterDrawer.value = '';
+        matchCounterHeader.value = '';
+        matchTotalDrawer.textContent = '0';
+        matchTotalHeader.textContent = '0';
+    } else {
+        matchCounterDrawer.value = currentMatchIndex + 1;
+        matchCounterHeader.value = currentMatchIndex + 1;
+        matchTotalDrawer.textContent = searchResults.length;
+        matchTotalHeader.textContent = searchResults.length;
+    }
 }
 
 // Read a single line by line number
