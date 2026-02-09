@@ -1150,7 +1150,14 @@ function updateDownloadPreview() {
     if (end !== validEnd) downloadEndLine.value = validEnd;
 
     const count = Math.max(0, validEnd - validStart + 1);
-    downloadPreview.textContent = `${formatNumber(count)} lines selected (${formatNumber(validStart)} - ${formatNumber(validEnd)})`;
+
+    const countEl = document.getElementById('preview-count');
+    const rangeEl = document.getElementById('preview-range');
+    const maxEl = document.getElementById('preview-max');
+
+    if (countEl) countEl.textContent = `${formatNumber(count)} lines selected`;
+    if (rangeEl) rangeEl.textContent = `Lines ${formatNumber(validStart)} - ${formatNumber(validEnd)}`;
+    if (maxEl) maxEl.textContent = `· Max: ${formatNumber(totalLines)}`;
 }
 
 async function executeDownload() {
@@ -1167,7 +1174,9 @@ async function executeDownload() {
     downloadAbortController = new AbortController();
     downloadProgress.classList.remove('hidden');
     downloadSuccess.classList.add('hidden');
+    downloadSuccess.classList.remove('visible');
     downloadExecute.disabled = true;
+    downloadExecute.classList.add('btn-loading');
 
     try {
         const lines = await readLinesWithProgress(start - 1, end);
@@ -1189,6 +1198,7 @@ async function executeDownload() {
 
         downloadProgress.classList.add('hidden');
         downloadSuccess.classList.remove('hidden');
+        downloadSuccess.classList.add('visible');
         downloadProgressFill.style.width = '0%';
     } catch (error) {
         if (error.name !== 'AbortError') {
@@ -1197,6 +1207,7 @@ async function executeDownload() {
     }
 
     downloadExecute.disabled = false;
+    downloadExecute.classList.remove('btn-loading');
     downloadAbortController = null;
 }
 

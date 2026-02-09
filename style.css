@@ -652,10 +652,22 @@ a:hover {
   background: var(--color-accent);
   border: none;
   color: white;
+  box-shadow: 0 2px 8px rgba(254, 59, 21, 0.2);
 }
 
 .btn-primary:hover {
   background: var(--color-accent-hover);
+  box-shadow: 0 4px 12px rgba(254, 59, 21, 0.35);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 6px rgba(254, 59, 21, 0.25);
+}
+
+.btn-primary:disabled,
+.btn-primary.btn-loading {
+  box-shadow: none;
 }
 
 .btn-secondary {
@@ -1241,7 +1253,7 @@ a:hover {
   z-index: var(--z-modal);
   opacity: 0;
   visibility: hidden;
-  transition: all var(--transition-normal);
+  transition: opacity 0.18s ease, visibility 0.18s ease;
 }
 
 .modal-overlay.visible {
@@ -1260,12 +1272,16 @@ a:hover {
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-xl);
-  transform: scale(0.95);
-  transition: transform var(--transition-normal);
+  transform: translateY(-8px) scale(0.97);
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease;
 }
 
 .modal-overlay.visible .modal-content {
-  transform: scale(1);
+  transform: translateY(0) scale(1);
+}
+
+.modal-overlay.visible:hover {
+  border-color: var(--color-border-default);
 }
 
 .modal-header {
@@ -1277,10 +1293,20 @@ a:hover {
 }
 
 .modal-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
   font-size: 16px;
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 0;
+}
+
+.modal-title svg {
+  width: 20px;
+  height: 20px;
+  color: var(--color-accent);
+  flex-shrink: 0;
 }
 
 .modal-close {
@@ -1294,7 +1320,7 @@ a:hover {
   border-radius: var(--radius-sm);
   cursor: pointer;
   color: var(--color-text-muted);
-  transition: all var(--transition-fast);
+  transition: all 0.14s ease;
 }
 
 .modal-close:hover {
@@ -1304,6 +1330,47 @@ a:hover {
 
 .modal-body {
   padding: var(--spacing-xl);
+}
+
+.form-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: linear-gradient(135deg, var(--color-bg-tertiary) 0%, rgba(254, 59, 21, 0.05) 100%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  margin-top: var(--spacing-md);
+  transition: all 0.2s ease;
+}
+
+.preview-count {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.preview-divider {
+  height: 1px;
+  background: linear-gradient(90deg, var(--color-border-subtle) 0%, transparent 100%);
+  margin: var(--spacing-xs) 0;
+}
+
+.preview-details {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.preview-range {
+  color: var(--color-text-secondary);
+}
+
+.preview-max {
+  color: var(--color-text-muted);
 }
 
 .modal-footer {
@@ -1339,17 +1406,33 @@ a:hover {
   font-family: var(--font-mono);
   font-size: 13px;
   color: var(--color-text-primary);
-  transition: all var(--transition-fast);
+  transition: all 0.14s ease;
 }
 
 .form-input:hover {
+  background: var(--color-bg-hover);
   border-color: var(--color-border-default);
 }
 
 .form-input:focus {
   outline: none;
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent-muted);
+  box-shadow: 0 0 0 3px var(--color-accent-muted), 0 0 12px rgba(254, 59, 21, 0.08);
+}
+
+.form-input.valid {
+  border-color: var(--color-success);
+}
+
+.form-input.invalid {
+  border-color: var(--color-error);
+  animation: shake 0.3s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-3px); }
+  40%, 80% { transform: translateX(3px); }
 }
 
 .form-input::-webkit-outer-spin-button,
@@ -1393,7 +1476,9 @@ a:hover {
   height: 100%;
   width: 0%;
   background: var(--color-accent);
-  transition: width 0.2s ease;
+  transition: width 0.15s ease-out;
+  box-shadow: 0 0 8px rgba(254, 59, 21, 0.4);
+  border-radius: 2px;
 }
 
 .progress-text {
@@ -1401,6 +1486,7 @@ a:hover {
   font-size: 12px;
   color: var(--color-text-muted);
   text-align: right;
+  transition: color 0.15s ease;
 }
 
 .download-success {
@@ -1413,6 +1499,14 @@ a:hover {
   border-radius: var(--radius-md);
   color: var(--color-success);
   font-size: 13px;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.download-success.visible {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .download-success.hidden {
@@ -1422,6 +1516,29 @@ a:hover {
 .btn-full {
   width: 100%;
   justify-content: center;
+}
+
+.btn-loading {
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.btn-loading .btn-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: btn-spin 0.7s linear infinite;
+}
+
+.btn-loading .btn-text {
+  opacity: 0;
+}
+
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
 }
 
 /* ============================================
@@ -1642,6 +1759,10 @@ a:hover {
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+.modal-close:focus-visible {
+  outline-offset: 4px;
 }
 
 /* ============================================

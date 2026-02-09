@@ -283,7 +283,14 @@
     <div id="download-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="download-title">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="download-title" class="modal-title">Download Lines</h2>
+                <h2 id="download-title" class="modal-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Download Log Segment
+                </h2>
                 <button id="download-close" class="modal-close" aria-label="Close dialog">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"/>
@@ -302,7 +309,14 @@
                         <input type="number" id="download-end-line" class="form-input" min="1" value="1000">
                     </div>
                 </div>
-                <p id="download-preview" class="form-preview"></p>
+                <div id="download-preview" class="form-preview">
+                    <span id="preview-count" class="preview-count">1,000 lines selected</span>
+                    <div class="preview-divider"></div>
+                    <div class="preview-details">
+                        <span id="preview-range" class="preview-range">Lines 1 - 1,000</span>
+                        <span id="preview-max" class="preview-max">· Max: 50,000</span>
+                    </div>
+                </div>
                 <div id="download-progress" class="download-progress hidden">
                     <div class="progress-bar">
                         <div id="download-progress-fill" class="progress-fill"></div>
@@ -318,12 +332,15 @@
             </div>
             <div class="modal-footer">
                 <button id="download-execute" class="btn btn-primary btn-full">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                    Download
+                    <span class="btn-text">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Download
+                    </span>
+                    <span class="btn-spinner"></span>
                 </button>
             </div>
         </div>
