@@ -178,14 +178,14 @@ logViewer/
 
 ## Git Workflow
 
+- Provide commit message for uncommitted changes after coding
+
 ### Commit Message Format
 
 ```
 <type>(<scope>): <subject>
 
 <body>
-
-<footer>
 ```
 
 ### Types
