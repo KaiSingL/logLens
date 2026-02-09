@@ -1292,6 +1292,10 @@ function toggleSyntaxHighlighting() {
 
 // Initialize workers and setup
 document.addEventListener('DOMContentLoaded', () => {
+    if (typeof APP_VERSION !== 'undefined') {
+        const versionEl = document.getElementById('app-version');
+        if (versionEl) versionEl.textContent = `v${APP_VERSION}`;
+    }
     if (syntaxHighlightingEnabled) {
         initPrismWorker();
     }
