@@ -928,6 +928,7 @@ a:hover {
   font-size: 13px;
   color: var(--color-text-primary);
   transition: all var(--transition-fast);
+  appearance: textfield;
 }
 
 .page-input:hover {
