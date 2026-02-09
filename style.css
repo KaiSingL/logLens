@@ -336,7 +336,7 @@ a:hover {
   font-family: var(--font-mono);
   font-size: 12px;
   color: var(--color-text-secondary);
-  width: 32px;
+  width: 50px;
   padding: 2px 4px;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
