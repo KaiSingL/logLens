@@ -183,14 +183,20 @@
                         </div>
                         <div class="lines-per-page-compact">
                             <span class="toolbar-label">Lines:</span>
-                            <div class="select-wrapper select-compact">
-                                <select id="lines-per-page">
-                                    <option value="100">100</option>
-                                    <option value="500">500</option>
-                                    <option value="1000" selected>1000</option>
-                                    <option value="5000">5000</option>
-                                    <option value="10000">10000</option>
-                                </select>
+                            <div class="custom-dropdown" id="lines-per-page-dropdown">
+                                <button class="custom-dropdown-trigger" aria-haspopup="listbox" aria-expanded="false">
+                                    <span class="custom-dropdown-value">1000</span>
+                                    <svg class="custom-dropdown-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none">
+                                        <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                    </svg>
+                                </button>
+                                <ul class="custom-dropdown-menu" role="listbox" tabindex="-1">
+                                    <li class="custom-dropdown-option" data-value="100" role="option">100</li>
+                                    <li class="custom-dropdown-option" data-value="500" role="option">500</li>
+                                    <li class="custom-dropdown-option selected" data-value="1000" role="option">1000</li>
+                                    <li class="custom-dropdown-option" data-value="5000" role="option">5000</li>
+                                    <li class="custom-dropdown-option" data-value="10000" role="option">10000</li>
+                                </ul>
                             </div>
                         </div>
                         <div class="page-nav-compact">

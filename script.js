@@ -14,6 +14,7 @@ let totalLines = 0;
 let lineIndex = []; // Stores byte positions for line starts
 let currentPage = 1;
 let linesPerPage = 1000;
+let _linesPerPageOpen = false;
 let searchTerm = '';
 let searchResults = []; // Line numbers that match search
 let currentMatchIndex = -1; // Index of currently highlighted match
@@ -46,7 +47,7 @@ const dropZone = document.getElementById('drop-zone');
 const fileNameEl = document.getElementById('file-name');
 const fileSizeEl = document.getElementById('file-size');
 const totalLinesEl = document.getElementById('total-lines');
-const linesPerPageSelect = document.getElementById('lines-per-page');
+const linesPerPageDropdown = document.getElementById('lines-per-page-dropdown');
 const logContentInner = document.getElementById('log-content-inner');
 const loadingOverlay = document.getElementById('loading-overlay');
 const loadingText = document.getElementById('loading-text');
@@ -96,7 +97,6 @@ uploadInput.addEventListener('change', handleFileSelect);
 dropZone.addEventListener('dragover', handleDragOver);
 dropZone.addEventListener('dragleave', handleDragLeave);
 dropZone.addEventListener('drop', handleDrop);
-linesPerPageSelect.addEventListener('change', handleLinesPerPageChange);
 document.getElementById('btn-first').addEventListener('click', () => goToPage(1));
 document.getElementById('btn-prev').addEventListener('click', () => goToPage(currentPage - 1));
 document.getElementById('btn-next').addEventListener('click', () => goToPage(currentPage + 1));
@@ -145,6 +145,47 @@ downloadBackdrop.addEventListener('click', (e) => {
 downloadStartLine.addEventListener('input', updateDownloadPreview);
 downloadEndLine.addEventListener('input', updateDownloadPreview);
 downloadExecute.addEventListener('click', executeDownload);
+
+// Custom dropdown events
+linesPerPageDropdown.querySelector('.custom-dropdown-trigger').addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleLinesPerPageDropdown();
+});
+
+linesPerPageDropdown.querySelectorAll('.custom-dropdown-option').forEach(option => {
+    option.addEventListener('click', () => {
+        selectLinesPerPage(option.dataset.value, option);
+    });
+});
+
+linesPerPageDropdown.querySelector('.custom-dropdown-menu').addEventListener('keydown', (e) => {
+    const options = Array.from(linesPerPageDropdown.querySelectorAll('.custom-dropdown-option'));
+    const currentIndex = options.findIndex(opt => opt === document.activeElement);
+
+    if (e.key === 'Escape') {
+        closeLinesPerPageDropdown();
+        linesPerPageDropdown.querySelector('.custom-dropdown-trigger').focus();
+    } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const nextIndex = (currentIndex + 1) % options.length;
+        options[nextIndex].focus();
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prevIndex = (currentIndex - 1 + options.length) % options.length;
+        options[prevIndex].focus();
+    } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (currentIndex >= 0) {
+            selectLinesPerPage(options[currentIndex].dataset.value, options[currentIndex]);
+        }
+    }
+});
+
+document.addEventListener('click', (e) => {
+    if (!linesPerPageDropdown.contains(e.target)) {
+        closeLinesPerPageDropdown();
+    }
+});
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
@@ -628,12 +669,45 @@ function handlePageInput(e) {
     }
 }
 
-async function handleLinesPerPageChange(e) {
-    linesPerPage = parseInt(e.target.value, 10);
+function toggleLinesPerPageDropdown() {
+    _linesPerPageOpen = !_linesPerPageOpen;
+    const trigger = linesPerPageDropdown.querySelector('.custom-dropdown-trigger');
+    const menu = linesPerPageDropdown.querySelector('.custom-dropdown-menu');
+
+    if (_linesPerPageOpen) {
+        linesPerPageDropdown.classList.add('open');
+        trigger.setAttribute('aria-expanded', 'true');
+        menu.focus();
+    } else {
+        linesPerPageDropdown.classList.remove('open');
+        trigger.setAttribute('aria-expanded', 'false');
+    }
+}
+
+function selectLinesPerPage(value, optionEl) {
+    linesPerPage = parseInt(value, 10);
     currentPage = 1;
     updatePagination();
-    await loadPage(1);
+    loadPage(1);
     scrollToTop();
+
+    const valueSpan = linesPerPageDropdown.querySelector('.custom-dropdown-value');
+    valueSpan.textContent = value;
+
+    linesPerPageDropdown.querySelectorAll('.custom-dropdown-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+    optionEl.classList.add('selected');
+
+    toggleLinesPerPageDropdown();
+}
+
+function closeLinesPerPageDropdown() {
+    if (_linesPerPageOpen) {
+        _linesPerPageOpen = false;
+        linesPerPageDropdown.classList.remove('open');
+        linesPerPageDropdown.querySelector('.custom-dropdown-trigger').setAttribute('aria-expanded', 'false');
+    }
 }
 
 function getTotalPages() {
