@@ -3,8 +3,9 @@
 
 // Configuration
 const CHUNK_SIZE = 1024 * 1024; // 1MB chunks
-const INITIAL_BATCH_SIZE = 50; // Initial results to display
-const LAZY_LOAD_BATCH_SIZE = 30; // Additional results per scroll
+const INITIAL_BATCH_SIZE = 200; // Initial results to display (sliding window)
+const SLIDING_WINDOW_SIZE = 300; // Maximum items to keep in DOM
+const LAZY_LOAD_BATCH_SIZE = 100; // Additional results per scroll
 const LAZY_LOAD_THRESHOLD = 200; // px from bottom to trigger load
 const CIRCUMFERENCE = 62.83; // 2 * π * 10 for circular progress
 
@@ -22,6 +23,7 @@ let isSearching = false;
 let searchAbortController = null;
 let fileReadAbortController = null;
 let loadedResultsCount = 0;
+let firstLoadedIndex = 0; // Sliding window: index of first visible item
 let isLazyLoading = false;
 let searchScrollHandler = null;
 let syntaxHighlightingEnabled = true; // One Dark syntax highlighting (default: on)
@@ -898,6 +900,7 @@ function clearSearch() {
     currentMatchIndex = -1;
     isSearching = false;
     loadedResultsCount = 0;
+    firstLoadedIndex = 0;
 
     searchInput.value = '';
     clearSearchBtn.classList.add('hidden');
@@ -1088,6 +1091,7 @@ async function populateSearchResults() {
 
     searchResultsItems.innerHTML = '';
     loadedResultsCount = 0;
+    firstLoadedIndex = 0;
 
     await loadSearchResultBatch(0, INITIAL_BATCH_SIZE);
     setupSearchResultsScrollListener();
@@ -1160,11 +1164,44 @@ async function loadSearchResultBatch(startIndex, count) {
     }
 
     loadedResultsCount = endIndex;
+    firstLoadedIndex = Math.min(firstLoadedIndex, startIndex);
+
+    trimSlidingWindow();
 
     if (loadedResultsCount < searchResults.length) {
         lazyLoadIndicator.classList.remove('hidden');
     } else {
         lazyLoadIndicator.classList.add('hidden');
+    }
+}
+
+// Trim sliding window to keep DOM size bounded
+function trimSlidingWindow() {
+    const items = searchResultsItems.querySelectorAll('.search-result-item');
+
+    if (items.length <= SLIDING_WINDOW_SIZE) return;
+
+    const keepStart = Math.max(0, currentMatchIndex - Math.floor(SLIDING_WINDOW_SIZE / 2));
+    const keepEnd = Math.min(searchResults.length, keepStart + SLIDING_WINDOW_SIZE);
+
+    items.forEach(item => {
+        const index = parseInt(item.dataset.index);
+        if (index < keepStart || index >= keepEnd) {
+            item.remove();
+            firstLoadedIndex = keepStart;
+        }
+    });
+}
+
+// Expand sliding window by loading more items around active match
+async function expandSlidingWindowAroundMatch() {
+    const items = searchResultsItems.querySelectorAll('.search-result-item');
+    const hasCurrentMatch = items.some(item => parseInt(item.dataset.index) === currentMatchIndex);
+
+    if (hasCurrentMatch) return;
+
+    if (loadedResultsCount < searchResults.length) {
+        await loadSearchResultBatch(loadedResultsCount, SLIDING_WINDOW_SIZE);
     }
 }
 
@@ -1196,9 +1233,12 @@ function setupSearchResultsScrollListener() {
 async function updateActiveResultItem() {
     let item = searchResultsItems.querySelector(`.search-result-item[data-index="${currentMatchIndex}"]`);
 
-    while (!item && loadedResultsCount < searchResults.length) {
-        await loadSearchResultBatch(loadedResultsCount, LAZY_LOAD_BATCH_SIZE);
-        item = searchResultsItems.querySelector(`.search-result-item[data-index="${currentMatchIndex}"]`);
+    if (!item) {
+        if (currentMatchIndex >= loadedResultsCount && loadedResultsCount < searchResults.length) {
+            const loadStart = Math.max(0, currentMatchIndex - Math.floor(SLIDING_WINDOW_SIZE / 2));
+            await loadSearchResultBatch(loadStart, SLIDING_WINDOW_SIZE);
+            item = searchResultsItems.querySelector(`.search-result-item[data-index="${currentMatchIndex}"]`);
+        }
     }
 
     if (item) {
