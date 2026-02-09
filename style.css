@@ -880,6 +880,13 @@ a:hover {
   width: 45px;
   padding: 3px 5px;
   font-size: 11px;
+  -moz-appearance: textfield;
+}
+
+.page-input-compact::-webkit-inner-spin-button,
+.page-input-compact::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .page-total-compact {
