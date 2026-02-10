@@ -6,7 +6,9 @@ const CHUNK_SIZE = 1024 * 1024; // 1MB chunks
 const INITIAL_BATCH_SIZE = 200; // Initial results to display (sliding window)
 const SLIDING_WINDOW_SIZE = 300; // Maximum items to keep in DOM
 const LAZY_LOAD_BATCH_SIZE = 100; // Additional results per scroll
-const LAZY_LOAD_THRESHOLD = 200; // px from bottom to trigger load
+const LAZY_LOAD_THRESHOLD = 100; // px from bottom to trigger load
+const VISIBILITY_ROOT_MARGIN = '150px';
+const VISIBILITY_THRESHOLD = 0;
 const CIRCUMFERENCE = 62.83; // 2 * π * 10 for circular progress
 
 // State
@@ -24,8 +26,9 @@ let searchAbortController = null;
 let fileReadAbortController = null;
 let loadedResultsCount = 0;
 let firstLoadedIndex = 0; // Sliding window: index of first visible item
-let isLazyLoading = false;
-let searchScrollHandler = null;
+let visibilityObserver = null;
+let itemsMutationObserver = null;
+const visibleIndices = new Set();
 let syntaxHighlightingEnabled = true; // One Dark syntax highlighting (default: on)
 let matchWholeWord = false; // Match whole word only
 let matchCase = false; // Match case sensitive
@@ -289,6 +292,7 @@ async function loadFile(file) {
     searchResults = [];
     currentMatchIndex = -1;
     drawerVisible = false;
+    visibleIndices.clear();
     
     searchInput.value = '';
     searchResultsItems.innerHTML = '';
@@ -772,6 +776,7 @@ async function startSearch() {
     searchResults = [];
     currentMatchIndex = -1;
     loadedResultsCount = 0;
+    visibleIndices.clear();
 
     searchProgressFill.style.strokeDashoffset = CIRCUMFERENCE;
     searchProgressEl.classList.add('active');
@@ -901,6 +906,7 @@ function clearSearch() {
     isSearching = false;
     loadedResultsCount = 0;
     firstLoadedIndex = 0;
+    visibleIndices.clear();
 
     searchInput.value = '';
     clearSearchBtn.classList.add('hidden');
@@ -1092,9 +1098,11 @@ async function populateSearchResults() {
     searchResultsItems.innerHTML = '';
     loadedResultsCount = 0;
     firstLoadedIndex = 0;
+    visibleIndices.clear();
 
     await loadSearchResultBatch(0, INITIAL_BATCH_SIZE);
-    setupSearchResultsScrollListener();
+    initVisibilityObserver();
+    setupItemObserver();
 }
 
 // Load a batch of search results
@@ -1163,16 +1171,23 @@ async function loadSearchResultBatch(startIndex, count) {
         searchResultsItems.appendChild(resultItem);
     }
 
+    // Observe newly added items
+    if (visibilityObserver) {
+        const newItems = searchResultsItems.querySelectorAll('.search-result-item');
+        newItems.forEach(item => {
+            const index = parseInt(item.dataset.index);
+            if (index >= startIndex && index < endIndex) {
+                visibilityObserver.observe(item);
+            }
+        });
+    }
+
     loadedResultsCount = endIndex;
     firstLoadedIndex = Math.min(firstLoadedIndex, startIndex);
 
     trimSlidingWindow();
 
-    if (loadedResultsCount < searchResults.length) {
-        lazyLoadIndicator.classList.remove('hidden');
-    } else {
-        lazyLoadIndicator.classList.add('hidden');
-    }
+    lazyLoadIndicator.classList.toggle('hidden', loadedResultsCount >= searchResults.length);
 }
 
 // Trim sliding window to keep DOM size bounded
@@ -1205,53 +1220,134 @@ async function expandSlidingWindowAroundMatch() {
     }
 }
 
-// Set up scroll listener for lazy loading
-function setupSearchResultsScrollListener() {
-    if (searchScrollHandler) {
-        searchResultsItems.removeEventListener('scroll', searchScrollHandler);
-        searchScrollHandler = null;
-    }
-
-    searchScrollHandler = async () => {
-        const scrollTop = searchResultsItems.scrollTop;
-        const scrollHeight = searchResultsItems.scrollHeight;
-        const clientHeight = searchResultsItems.clientHeight;
-        const distanceToBottom = scrollHeight - scrollTop - clientHeight;
-
-        if (distanceToBottom < LAZY_LOAD_THRESHOLD && !isLazyLoading && loadedResultsCount < searchResults.length) {
-            isLazyLoading = true;
-            lazyLoadIndicator.classList.remove('hidden');
-            await loadSearchResultBatch(loadedResultsCount, LAZY_LOAD_BATCH_SIZE);
-            isLazyLoading = false;
-        }
-    };
-
-    searchResultsItems.addEventListener('scroll', searchScrollHandler);
-}
-
 // Update active result item styling
 async function updateActiveResultItem() {
-    let item = searchResultsItems.querySelector(`.search-result-item[data-index="${currentMatchIndex}"]`);
+    try {
+        let item = searchResultsItems.querySelector(`.search-result-item[data-index="${currentMatchIndex}"]`);
 
-    if (!item) {
-        if (currentMatchIndex >= loadedResultsCount && loadedResultsCount < searchResults.length) {
+        // Always check if item exists in DOM - it may have been trimmed by sliding window
+        if (!item) {
             const loadStart = Math.max(0, currentMatchIndex - Math.floor(SLIDING_WINDOW_SIZE / 2));
             await loadSearchResultBatch(loadStart, SLIDING_WINDOW_SIZE);
             item = searchResultsItems.querySelector(`.search-result-item[data-index="${currentMatchIndex}"]`);
         }
-    }
 
-    if (item) {
+        if (!item) return;
+
         const items = searchResultsItems.querySelectorAll('.search-result-item');
-        items.forEach((el) => {
+        items.forEach(el => {
             if (parseInt(el.dataset.index) === currentMatchIndex) {
                 el.classList.add('active');
-                el.scrollIntoView({ behavior: 'instant', block: 'nearest' });
             } else {
                 el.classList.remove('active');
             }
         });
+
+        item.scrollIntoView({ behavior: 'instant', block: 'nearest' });
+    } catch (error) {
+        console.debug('updateActiveResultItem failed:', error);
     }
+}
+
+function getVisibleRange() {
+    if (visibleIndices.size === 0) {
+        return { min: 0, max: 0, count: 0 };
+    }
+    const indices = Array.from(visibleIndices);
+    return {
+        min: Math.min(...indices),
+        max: Math.max(...indices),
+        count: visibleIndices.size
+    };
+}
+
+function updateLoadedResultsState() {
+    const items = searchResultsItems.querySelectorAll('.search-result-item');
+    if (items.length === 0) {
+        loadedResultsCount = 0;
+        firstLoadedIndex = 0;
+        return;
+    }
+    const indices = Array.from(items).map(el => parseInt(el.dataset.index));
+    firstLoadedIndex = Math.min(...indices);
+    loadedResultsCount = Math.max(loadedResultsCount, Math.max(...indices) + 1);
+    lazyLoadIndicator.classList.toggle('hidden', loadedResultsCount >= searchResults.length);
+}
+
+function trimResultsOutsideVisibleRange(visibleRange) {
+    const buffer = 100;
+    const keepStart = Math.max(0, visibleRange.min - buffer);
+    const keepEnd = Math.min(searchResults.length, visibleRange.max + buffer + buffer);
+    const items = searchResultsItems.querySelectorAll('.search-result-item');
+    let needsUpdate = false;
+    items.forEach(item => {
+        const index = parseInt(item.dataset.index);
+        if (index < keepStart || index >= keepEnd) {
+            visibilityObserver?.unobserve(item);
+            item.remove();
+            visibleIndices.delete(index);
+            needsUpdate = true;
+        }
+    });
+    if (needsUpdate) updateLoadedResultsState();
+}
+
+async function handleVisibilityChange() {
+    try {
+        const visibleRange = getVisibleRange();
+        if (visibleRange.count === 0) return;
+        const loadBuffer = 50;
+        if (visibleRange.max >= loadedResultsCount - loadBuffer && loadedResultsCount < searchResults.length) {
+            lazyLoadIndicator.classList.remove('hidden');
+            await loadSearchResultBatch(loadedResultsCount, SLIDING_WINDOW_SIZE);
+            lazyLoadIndicator.classList.add('hidden');
+        }
+        trimResultsOutsideVisibleRange(visibleRange);
+    } catch (error) {
+        console.debug('handleVisibilityChange failed:', error);
+    }
+}
+
+function initVisibilityObserver() {
+    if (visibilityObserver) visibilityObserver.disconnect();
+    visibilityObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            const index = parseInt(entry.target.dataset.index);
+            if (isNaN(index)) return;
+            entry.isIntersecting ? visibleIndices.add(index) : visibleIndices.delete(index);
+        });
+        handleVisibilityChange();
+    }, { root: searchResultsItems, rootMargin: VISIBILITY_ROOT_MARGIN, threshold: VISIBILITY_THRESHOLD });
+    searchResultsItems.querySelectorAll('.search-result-item').forEach(item => visibilityObserver.observe(item));
+}
+
+function setupItemObserver() {
+    if (itemsMutationObserver) itemsMutationObserver.disconnect();
+    itemsMutationObserver = new MutationObserver((mutations) => {
+        mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+                if (node.nodeType === 1 && node.classList.contains('search-result-item')) {
+                    visibilityObserver?.observe(node);
+                }
+            });
+            mutation.removedNodes.forEach(node => {
+                if (node.nodeType === 1 && node.classList.contains('search-result-item')) {
+                    const index = parseInt(node.dataset.index);
+                    if (!isNaN(index)) visibleIndices.delete(index);
+                    visibilityObserver?.unobserve(node);
+                }
+            });
+        });
+    });
+    itemsMutationObserver.observe(searchResultsItems, { childList: true, subtree: false });
+}
+
+function clearVisibilityObservers() {
+    visibilityObserver?.disconnect();
+    visibilityObserver = null;
+    itemsMutationObserver?.disconnect();
+    itemsMutationObserver = null;
+    visibleIndices.clear();
 }
 
 // Download Modal
