@@ -105,8 +105,13 @@ let downloadAbortController = null;
 let lastFocusedElement = null;
 
 if (resizeHandle) {
+    let startX = 0;
+    let startWidth = 0;
+
     resizeHandle.addEventListener('mousedown', (e) => {
         isResizing = true;
+        startX = e.clientX;
+        startWidth = sidebarWidth;
         resizeHandle.classList.add('dragging');
         document.body.style.cursor = 'col-resize';
         document.body.style.userSelect = 'none';
@@ -117,12 +122,10 @@ if (resizeHandle) {
 
         const container = document.querySelector('.container');
         const containerRect = container.getBoundingClientRect();
-        const viewerSection = document.querySelector('.viewer-section');
-        const viewerRect = viewerSection.getBoundingClientRect();
 
+        const deltaX = startX - e.clientX;
         const maxWidth = containerRect.width * 0.6;
-        const relativeX = e.clientX - viewerRect.right;
-        const newWidth = Math.max(RESIZE_MIN_WIDTH, Math.min(relativeX, maxWidth));
+        const newWidth = Math.max(RESIZE_MIN_WIDTH, Math.min(startWidth + deltaX, maxWidth));
 
         sidebarWidth = Math.round(newWidth);
         drawer.style.setProperty('--sidebar-width', `${sidebarWidth}px`);

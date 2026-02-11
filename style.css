@@ -1119,6 +1119,7 @@ a:hover {
     transition: opacity 0.15s ease;
     margin: 0 -3px;
     z-index: 10;
+    pointer-events: auto;
 }
 
 .resize-handle.visible,
@@ -1206,7 +1207,7 @@ a:hover {
 }
 
 .search-sidebar.visible {
-    width: 380px;
+    width: var(--sidebar-width, 380px);
 }
 
 .drawer-header {
