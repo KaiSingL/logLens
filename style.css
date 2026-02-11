@@ -1090,7 +1090,7 @@ a:hover {
     ============================================ */
 
 .search-sidebar {
-    width: 0;
+    width: var(--sidebar-width, 0);
     overflow: hidden;
     transition: width 0.2s ease;
     background: var(--color-bg-secondary);
@@ -1101,7 +1101,41 @@ a:hover {
 }
 
 .search-sidebar.visible {
-    width: 380px;
+    width: var(--sidebar-width, 380px);
+}
+
+.resize-handle {
+    width: 6px;
+    background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 2px,
+        var(--color-border-subtle) 2px,
+        var(--color-border-subtle) 4px
+    );
+    cursor: col-resize;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    margin: 0 -3px;
+    z-index: 10;
+}
+
+.resize-handle.visible,
+.resize-handle:hover,
+.resize-handle.dragging {
+    opacity: 1;
+}
+
+.resize-handle.dragging {
+    opacity: 1;
+    background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 2px,
+        var(--color-accent) 2px,
+        var(--color-accent) 4px
+    );
 }
 
 .panel-header {

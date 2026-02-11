@@ -83,6 +83,11 @@ const searchResultsTitleText = document.getElementById('search-results-title-tex
 const lazyLoadIndicator = document.getElementById('lazy-load-indicator');
 const logContainer = document.getElementById('log-content');
 
+const RESIZE_MIN_WIDTH = 380;
+let sidebarWidth = 380;
+let isResizing = false;
+let resizeHandle = document.getElementById('sidebar-resize-handle');
+
 // Download modal elements
 const downloadModal = document.getElementById('download-modal');
 const downloadClose = document.getElementById('download-close');
@@ -98,6 +103,40 @@ const downloadExecute = document.getElementById('download-execute');
 
 let downloadAbortController = null;
 let lastFocusedElement = null;
+
+if (resizeHandle) {
+    resizeHandle.addEventListener('mousedown', (e) => {
+        isResizing = true;
+        resizeHandle.classList.add('dragging');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+
+        const container = document.querySelector('.container');
+        const containerRect = container.getBoundingClientRect();
+        const viewerSection = document.querySelector('.viewer-section');
+        const viewerRect = viewerSection.getBoundingClientRect();
+
+        const maxWidth = containerRect.width * 0.6;
+        const relativeX = e.clientX - viewerRect.right;
+        const newWidth = Math.max(RESIZE_MIN_WIDTH, Math.min(relativeX, maxWidth));
+
+        sidebarWidth = Math.round(newWidth);
+        drawer.style.setProperty('--sidebar-width', `${sidebarWidth}px`);
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (isResizing) {
+            isResizing = false;
+            resizeHandle.classList.remove('dragging');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        }
+    });
+}
 
 // Event Listeners
 uploadInput.addEventListener('change', handleFileSelect);
@@ -959,12 +998,14 @@ function openDrawer() {
     drawerVisible = true;
     drawer.classList.add('visible');
     toggleDrawerBtn.classList.add('active');
+    resizeHandle.classList.add('visible');
 }
 
 function closeDrawer() {
     drawerVisible = false;
     drawer.classList.remove('visible');
     toggleDrawerBtn.classList.remove('active');
+    resizeHandle.classList.remove('visible');
 }
 
 function toggleDrawer() {
