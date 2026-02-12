@@ -232,6 +232,17 @@ a:hover {
   outline: none;
 }
 
+.search-input.error {
+  animation: shake 0.3s ease;
+  color: var(--color-error);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
 .search-actions {
   display: flex;
   align-items: center;
@@ -311,6 +322,16 @@ a:hover {
 .advanced-search-btn.active {
     color: var(--color-accent);
     background: var(--color-accent-muted);
+}
+
+.advanced-search-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.advanced-search-btn:disabled:hover {
+    background: transparent;
+    color: var(--color-text-muted);
 }
 
 .advanced-search-btn.hidden {

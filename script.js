@@ -33,6 +33,7 @@ let syntaxHighlightingEnabled = true; // One Dark syntax highlighting (default: 
 let matchWholeWord = false; // Match whole word only
 let matchCase = false; // Match case sensitive
 let drawerVisible = false; // Drawer visibility state
+let searchScrollHandler = null;
 
 // Prism.js Web Worker for non-blocking highlighting
 let prismWorker = null;
@@ -933,6 +934,20 @@ async function performAdvancedSearch() {
 
     advancedSearchAbortController = new AbortController();
 
+    const mainTerm = searchInput.value.trim();
+    if (mainTerm) {
+        const mainTermExists = advancedSearchTerms.some(t => t.term === mainTerm);
+        if (!mainTermExists) {
+            advancedSearchTerms.unshift({
+                type: 'include',
+                term: mainTerm,
+                wholeWord: matchWholeWord,
+                caseSensitive: matchCase,
+                operator: 'OR'
+            });
+        }
+    }
+
     try {
         if (!searchWorker) {
             initSearchWorker();
@@ -1773,17 +1788,15 @@ async function readLinesWithProgress(startLine, endLine) {
 
 // Advanced Search Dropdown
 function openAdvancedSearchDropdown() {
+    const mainTerm = searchInput.value.trim();
+    if (!mainTerm) {
+        searchInput.classList.add('error');
+        setTimeout(() => searchInput.classList.remove('error'), 300);
+        return;
+    }
+
     advancedSearchDropdown.classList.remove('hidden');
     advancedSearchDropdown.classList.add('visible');
-    
-    setTimeout(() => {
-        const firstInput = advancedSearchTermsContainer.querySelector('.term-input');
-        if (firstInput) {
-            firstInput.focus();
-        } else {
-            addIncludeTermBtn.focus();
-        }
-    }, 50);
 }
 
 function closeAdvancedSearchDropdown() {
@@ -1793,18 +1806,32 @@ function closeAdvancedSearchDropdown() {
 
 function setupAdvancedModeHandlers() {
     searchInputWrapper.addEventListener('click', openAdvancedSearchDropdown);
-    advancedSearchBtn.classList.add('hidden');
+    advancedSearchBtn.classList.add('active');
+    advancedSearchBtn.disabled = !searchInput.value.trim();
+    
+    searchInput.addEventListener('input', updateAdvancedButtonState);
 }
 
 function clearAdvancedModeHandlers() {
     searchInputWrapper.removeEventListener('click', openAdvancedSearchDropdown);
-    advancedSearchBtn.classList.remove('hidden');
+    advancedSearchBtn.classList.remove('active');
+    advancedSearchBtn.disabled = false;
+    searchInput.removeEventListener('input', updateAdvancedButtonState);
     closeAdvancedSearchDropdown();
 }
 
+function updateAdvancedButtonState() {
+    const hasMainTerm = searchInput.value.trim().length > 0;
+    advancedSearchBtn.disabled = !hasMainTerm;
+}
+
 document.addEventListener('click', (e) => {
-    if (advancedSearchMode && !e.target.closest('.search-bar-wrapper')) {
-        closeAdvancedSearchDropdown();
+    if (advancedSearchMode) {
+        const inSearchBar = e.target.closest('.search-bar-wrapper');
+        const inDropdown = e.target.closest('#advanced-search-dropdown');
+        if (!inSearchBar && !inDropdown) {
+            closeAdvancedSearchDropdown();
+        }
     }
 });
 
@@ -1966,6 +1993,13 @@ function updateEmptyState() {
 }
 
 function addIncludeTerm(config) {
+    const mainTerm = searchInput.value.trim();
+    if (!mainTerm) {
+        searchInput.classList.add('error');
+        setTimeout(() => searchInput.classList.remove('error'), 300);
+        return;
+    }
+
     updateEmptyState();
     const { id, element } = createTermRow(config);
     advancedSearchTermsContainer.appendChild(element);
@@ -1977,6 +2011,13 @@ function addIncludeTerm(config) {
 }
 
 function addExcludeTerm(config) {
+    const mainTerm = searchInput.value.trim();
+    if (!mainTerm) {
+        searchInput.classList.add('error');
+        setTimeout(() => searchInput.classList.remove('error'), 300);
+        return;
+    }
+
     updateEmptyState();
     const termConfig = config || { type: 'exclude' };
     const { id, element } = createTermRow(termConfig);
@@ -2001,15 +2042,6 @@ function executeAdvancedSearch() {
         closeAdvancedSearchDropdown();
         return;
     }
-
-    const firstTerm = advancedSearchTerms[0];
-    searchInput.value = firstTerm.term;
-    matchWholeWord = firstTerm.wholeWord;
-    matchCase = firstTerm.caseSensitive;
-
-    wholeWordCheckbox.checked = matchWholeWord;
-    matchCaseCheckbox.checked = matchCase;
-    updateSearchOptionStyles();
 
     advancedSearchMode = true;
     setupAdvancedModeHandlers();
