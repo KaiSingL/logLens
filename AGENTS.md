@@ -1,51 +1,55 @@
 # AGENTS.md - LogLens Development Guide
 
-This file provides guidelines for AI agents working on the LogLens codebase.
-
 ## Project Overview
 
-**LogLens** is a browser-based log file viewer that handles files up to 10GB via chunked reading and streaming. It uses Web Workers for non-blocking search and syntax highlighting.
+**LogLens** is a browser-based log file viewer that handles files up to 10GB via chunked reading and streaming. Uses Web Workers for non-blocking search and syntax highlighting.
 
 - **Type**: Single-page web application (vanilla JavaScript)
 - **License**: AGPL v3
 - **Tech Stack**: Vanilla ES6+, CSS Custom Properties, HTML5, Web Workers
-- **Dependencies**: Prism.js (v1.29.0, vendored), JetBrains Mono (v2.304, vendored)
-- **Offline Support**: Fully offline capable - all dependencies are vendored
+- **Dependencies**: Prism.js v1.29.0, JetBrains Mono v2.304 (both vendored)
+- **Offline**: Fully offline capable - all dependencies vendored
 
 ## Build & Development Commands
 
-This project requires no build step. Simply open `index.html` in a browser.
+No build step required. Open `index.html` directly in browser:
 
 ```bash
-# No build commands required
-# Open index.html directly in browser
-start index.html   # Windows
-open index.html    # macOS
-xdg-open index.html  # Linux
+# macOS
+open index.html
+
+# Linux
+xdg-open index.html
+
+# Windows
+start index.html
 ```
 
-**Testing**: No automated tests exist. Manual testing required for:
+**Linting**: None configured (vanilla JS project)
+
+**Testing**: No automated tests. Manual test checklist:
 - File upload (drag-drop and file picker)
-- Pagination navigation
-- Search functionality (worker and main thread)
+- Pagination navigation (prev/next, page input)
+- Search functionality (simple and advanced)
 - Syntax highlighting toggle
 - Download modal
+- Responsive sidebar resize
 
 ## Code Style Guidelines
 
 ### JavaScript (script.js, prism-worker.js, search-worker.js)
 
-**Naming Conventions**:
+**Naming**:
 - Variables/functions: `camelCase` (e.g., `currentFile`, `loadPage`)
-- Constants: `UPPER_SNAKE_CASE` (e.g., `CHUNK_SIZE`, `INITIAL_BATCH_SIZE`)
-- DOM elements: Prefix with element type (e.g., `fileNameEl`, `logContainer`)
+- Constants: `UPPER_SNAKE_CASE` (e.g., `CHUNK_SIZE`)
+- DOM elements: Suffix with `El` (e.g., `fileNameEl`, `logContainer`)
 - Private/worker state: Prefix with `_` (e.g., `_state`)
 
 **Formatting**:
 - Indent: 4 spaces
-- Line length: No hard limit, use discretion
 - Semicolons: Always use
-- Braces: Same-line for functions, newline for blocks
+- Braces: Same-line for functions and conditionals
+- Line length: No hard limit
 
 ```javascript
 // Correct
@@ -54,34 +58,43 @@ function loadPage(pageNum) {
     // ...
 }
 
-// Incorrect (braces on new line)
+// Incorrect
 function loadPage(pageNum)
 {
-    // ...
+    if (pageNum < 1)
+        return;
 }
+```
+
+**Imports**: None (vanilla JS, no modules). Workers use `importScripts()`:
+
+```javascript
+importScripts(
+    'vendor/prism/prism.min.js',
+    'vendor/prism/components/prism-log.min.js'
+);
 ```
 
 **Error Handling**:
 - Use `try/catch` with `finally` for async operations
 - Check `error.name === 'AbortError'` to ignore cancelled operations
-- Log errors with `console.error()` before user notification
+- Log with `console.error()` before user notification
 - Use `alert()` sparingly for critical failures only
 
 **Async Patterns**:
 - Use `async/await` with explicit error handling
 - Use `AbortController` for cancellable operations
-- Workers return promises for job-based communication
+- Workers use job-based messaging with promise resolution
 
 **Comments**:
-- Use JSDoc for public/helper functions
-- Inline comments for complex logic
-- Header comments for file purpose
+- Use JSDoc for public functions
+- Inline comments for complex logic only
 
 ### CSS (style.css)
 
-**Naming**: BEM-lite with hyphenated classes (e.g., `.log-line`, `.search-drawer`)
+**Naming**: BEM-lite with hyphens (e.g., `.log-line`, `.search-drawer`)
 
-**Variables**: Define all colors, spacing, and transitions in `:root`
+**Variables**: Define all colors, spacing, transitions in `:root`
 
 ```css
 :root {
@@ -97,51 +110,49 @@ function loadPage(pageNum)
 2. Base reset
 3. Components
 4. Utility classes
-5. Responsive (removed - desktop only)
 
 ### HTML (index.html)
 
-**Structure**:
-- Semantic HTML5 elements (`<header>`, `<main>`, `<footer>`)
+- Semantic HTML5 elements
 - ARIA labels for interactive elements
 - Skip link for accessibility
 
-## Architecture Notes
+## Architecture
 
 ### File Processing Pipeline
 
 ```
 File Input → buildLineIndex() → lineIndex[] (byte positions)
             → loadPage(pageNum) → readLines() → renderLines()
-            → highlightLinesAsync() → Web Worker (prism-worker.js)
+            → highlightLinesAsync() → prism-worker.js
 ```
 
 ### Search Implementation
 
-- Primary: Web Worker (`search-worker.js`) for non-blocking search
+- Primary: `search-worker.js` for non-blocking search
 - Fallback: Main thread for browsers without Worker support
 - Job-based communication with promise resolution
 
 ### State Management
 
-- Module-level variables for state (no framework)
+- Module-level variables (no framework)
 - DOM elements cached at top of file
 - AbortControllers for operation cancellation
 
-## Performance Considerations
+## Performance
 
 - **Chunk size**: 1MB for file reading
 - **Lazy loading**: 30 results per scroll in search drawer
 - **Workers**: Prism highlighting in background thread
-- **Memory**: Line index stored as byte positions (not full content)
+- **Memory**: Line index stores byte positions (not full content)
 - **UI**: `scrollIntoView({ behavior: 'instant' })` for performance
 
-## Adding New Features
+## Constraints
 
-1. **New UI Component**: Add CSS to `style.css`, HTML to `index.html`
-2. **New Worker**: Follow pattern in `search-worker.js` with job-based messaging
-3. **File Processing**: Add to `buildLineIndex()` or `readLines()` pipeline
-4. **Search Features**: Extend `search-worker.js` message types
+- **Desktop only**: No mobile/responsive support
+- **No build system**: All changes reflected immediately
+- **AGPL licensed**: Changes must be open-sourced
+- **Single CSS file**: All styles in `style.css`
 
 ## File Structure
 
@@ -149,61 +160,41 @@ File Input → buildLineIndex() → lineIndex[] (byte positions)
 logViewer/
 ├── index.html          # Main application
 ├── script.js           # Core application logic
-├── style.css          # All styling (merged, no brutalist)
+├── style.css          # All styling
 ├── prism-one-dark.css # Syntax highlighting theme
 ├── prism-worker.js    # Prism.js Web Worker
 ├── search-worker.js   # Search Web Worker
 ├── LICENSE            # AGPL v3
 ├── AGENTS.md         # This file
-├── assets/
-│   └── icons/         # App icons (16x16 to 512x512)
-└── vendor/            # Third-party dependencies (offline capable)
-    ├── fonts/
-    │   └── jetbrains-mono/   # JetBrains Mono v2.304
-    │       ├── JetBrainsMono-Regular.woff2
-    │       ├── JetBrainsMono-Bold.woff2
-    │       └── fonts.css
-    └── prism/                # Prism.js v1.29.0
-        ├── prism.min.js
-        └── components/
-            └── prism-log.min.js
+├── assets/icons/      # App icons (16x16 to 512x512)
+└── vendor/            # Third-party dependencies
+    ├── fonts/jetbrains-mono/
+    └── prism/
 ```
-
-## Important Constraints
-
-- **No mobile support**: Responsive breakpoints removed, desktop-only
-- **No build system**: All changes reflected immediately
-- **AGPL licensed**: Changes must be open-sourced
-- **Single CSS file**: All styles in `style.css`, no external CSS beyond Prism
 
 ## Git Workflow
 
-- Provide commit message for uncommitted changes after coding
+Provide commit message for uncommitted changes after coding.
 
-### Commit Message Format
-
+**Format**:
 ```
 <type>(<scope>): <subject>
 
 <body>
 ```
 
-### Types
+**Types**:
 - `feat` - New feature
 - `fix` - Bug fix
-- `docs` - Documentation only
+- `docs` - Documentation
 - `refactor` - Code restructuring
-- `migrate` - Repository/dependency migration
-- `chore` - Maintenance tasks
+- `chore` - Maintenance
 
-### Example Commit Message
-
+**Example**:
 ```
-migrate(index.html): update head for private repo deployment
+feat(search): add advanced search with AND/OR operators
 
-- Remove Open Graph and Twitter image references (no public hosting)
-- Remove og:url property (private repo)
-- Update icon paths from relative ../../ to root-relative /
-- Update logo link to root path /
-- Update copyright year to 2026
+- Add support for include/exclude terms
+- Add OR operator for alternative matching
+- Update UI with term management interface
 ```
