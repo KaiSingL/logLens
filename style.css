@@ -1931,6 +1931,19 @@ a:hover {
     display: none;
 }
 
+.term-toggle-include,
+.term-toggle-exclude {
+    display: none;
+}
+
+.term-toggle.include .term-toggle-include {
+    display: block;
+}
+
+.term-toggle.exclude .term-toggle-exclude {
+    display: block;
+}
+
 .term-toggle.include {
     background: var(--color-success);
     color: white;
