@@ -1815,7 +1815,7 @@ function createTermRow(config) {
     const termInput = row.querySelector('.term-input');
     const wholeWordCheckbox = row.querySelector('.term-whole-word');
     const caseSensitiveCheckbox = row.querySelector('.term-case-sensitive');
-    const operatorSelect = row.querySelector('.term-operator');
+    const operatorToggle = row.querySelector('.term-operator-toggle');
     const deleteBtn = row.querySelector('.term-delete');
     const toggle = row.querySelector('.term-toggle');
 
@@ -1826,9 +1826,20 @@ function createTermRow(config) {
         termInput.value = config.term || '';
         wholeWordCheckbox.checked = config.wholeWord || false;
         caseSensitiveCheckbox.checked = config.caseSensitive || false;
-        operatorSelect.value = config.operator || 'AND';
+        if (config.operator === 'OR') {
+            operatorToggle.classList.remove('and');
+            operatorToggle.classList.add('or');
+            operatorToggle.dataset.operator = 'OR';
+        } else {
+            operatorToggle.classList.add('and');
+            operatorToggle.classList.remove('or');
+            operatorToggle.dataset.operator = 'AND';
+        }
     } else {
         includeCheckbox.checked = true;
+        operatorToggle.classList.add('and');
+        operatorToggle.classList.remove('or');
+        operatorToggle.dataset.operator = 'AND';
     }
 
     if (includeCheckbox.checked) {
@@ -1890,14 +1901,18 @@ function createTermRow(config) {
         updateAdvancedSearchState();
     });
 
-    operatorSelect.addEventListener('change', () => {
+    operatorToggle.addEventListener('click', () => {
+        const currentOp = operatorToggle.dataset.operator || 'AND';
+        const newOp = currentOp === 'AND' ? 'OR' : 'AND';
+        operatorToggle.dataset.operator = newOp;
+        operatorToggle.classList.remove('and', 'or');
+        operatorToggle.classList.add(newOp.toLowerCase());
         updateAdvancedSearchState();
     });
 
     deleteBtn.addEventListener('click', () => {
         termRow.remove();
         updateAdvancedSearchState();
-        updateOperatorVisibility();
         updateEmptyState();
     });
 
@@ -1913,7 +1928,7 @@ function updateAdvancedSearchState() {
         const termInput = row.querySelector('.term-input');
         const wholeWordCheckbox = row.querySelector('.term-whole-word');
         const caseSensitiveCheckbox = row.querySelector('.term-case-sensitive');
-        const operatorSelect = row.querySelector('.term-operator');
+        const operatorToggle = row.querySelector('.term-operator-toggle');
 
         const term = termInput.value.trim();
         if (term) {
@@ -1922,7 +1937,7 @@ function updateAdvancedSearchState() {
                 term: term,
                 wholeWord: wholeWordCheckbox.checked,
                 caseSensitive: caseSensitiveCheckbox.checked,
-                operator: operatorSelect.value
+                operator: operatorToggle.dataset.operator || 'AND'
             });
         }
     });
@@ -1950,23 +1965,10 @@ function updateEmptyState() {
     }
 }
 
-function updateOperatorVisibility() {
-    const rows = advancedSearchTermsContainer.querySelectorAll('.term-row');
-    rows.forEach((row, index) => {
-        const operator = row.querySelector('.term-operator');
-        if (index === 0) {
-            operator.classList.add('hidden');
-        } else {
-            operator.classList.remove('hidden');
-        }
-    });
-}
-
 function addIncludeTerm(config) {
     updateEmptyState();
     const { id, element } = createTermRow(config);
     advancedSearchTermsContainer.appendChild(element);
-    updateOperatorVisibility();
 
     const input = element.querySelector('.term-input');
     input.focus();
@@ -1979,7 +1981,6 @@ function addExcludeTerm(config) {
     const termConfig = config || { type: 'exclude' };
     const { id, element } = createTermRow(termConfig);
     advancedSearchTermsContainer.appendChild(element);
-    updateOperatorVisibility();
 
     const input = element.querySelector('.term-input');
     input.focus();

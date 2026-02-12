@@ -106,7 +106,7 @@
 
                 <div id="advanced-search-dropdown" class="search-dropdown hidden">
                     <div class="search-dropdown-header">
-                        <span>Query Builder</span>
+                        <span>Additional Criteria</span>
                         <button id="advanced-search-close" class="dropdown-close-btn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"/>
@@ -411,6 +411,10 @@
     <template id="term-row-template">
         <div class="term-row">
             <div class="term-row-main">
+                <button class="term-operator-toggle" title="AND/OR">
+                    <span class="term-operator-and">AND</span>
+                    <span class="term-operator-or">OR</span>
+                </button>
                 <label class="term-toggle">
                     <input type="checkbox" class="term-include-checkbox">
                     <span class="term-toggle-include">Include</span>
@@ -435,10 +439,6 @@
                         <circle cx="18.5" cy="12.5" r="3.5"/>
                     </svg>
                 </label>
-                <select class="term-operator">
-                    <option value="AND">AND</option>
-                    <option value="OR">OR</option>
-                </select>
                 <button class="term-delete" title="Remove term">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"/>
@@ -451,7 +451,7 @@
 
     <div id="advanced-search-dropdown" class="search-dropdown hidden">
         <div class="search-dropdown-header">
-            <span>Query Builder</span>
+            <span>Additional Criteria</span>
             <button id="advanced-search-close" class="dropdown-close-btn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"/>

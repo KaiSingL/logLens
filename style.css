@@ -1945,13 +1945,56 @@ a:hover {
 }
 
 .term-toggle.include {
-    background: var(--color-success);
-    color: white;
+    background: rgba(63, 185, 80, 0.3);
+    color: #79dd8a;
 }
 
 .term-toggle.exclude {
-    background: var(--color-error);
-    color: white;
+    background: rgba(254, 59, 21, 0.3);
+    color: #ff8a75;
+}
+
+.term-operator-toggle {
+    width: 50px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border-subtle);
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.term-operator-toggle:hover {
+    border-color: var(--color-border-default);
+}
+
+.term-operator-and,
+.term-operator-or {
+    display: none;
+}
+
+.term-operator-toggle.and .term-operator-and {
+    display: block;
+}
+
+.term-operator-toggle.or .term-operator-or {
+    display: block;
+}
+
+.term-operator-toggle.and {
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+}
+
+.term-operator-toggle.or {
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
 }
 
 .term-input {
