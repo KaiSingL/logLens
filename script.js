@@ -88,6 +88,12 @@ let sidebarWidth = 380;
 let isResizing = false;
 let resizeHandle = document.getElementById('sidebar-resize-handle');
 
+// Advanced search state
+let advancedSearchTerms = [];
+let termIdCounter = 0;
+let advancedSearchMode = false;
+let advancedSearchAbortController = null;
+
 // Download modal elements
 const downloadModal = document.getElementById('download-modal');
 const downloadClose = document.getElementById('download-close');
@@ -100,6 +106,16 @@ const downloadProgressFill = document.getElementById('download-progress-fill');
 const downloadProgressText = document.getElementById('download-progress-text');
 const downloadSuccess = document.getElementById('download-success');
 const downloadExecute = document.getElementById('download-execute');
+
+// Advanced search modal elements
+const advancedSearchDropdown = document.getElementById('advanced-search-dropdown');
+const advancedSearchBtn = document.getElementById('advanced-search-btn');
+const advancedSearchClose = document.getElementById('advanced-search-close');
+const advancedSearchTermsContainer = document.getElementById('advanced-search-terms');
+const addIncludeTermBtn = document.getElementById('add-include-term');
+const addExcludeTermBtn = document.getElementById('add-exclude-term');
+const termRowTemplate = document.getElementById('term-row-template');
+const searchInputWrapper = document.getElementById('search-input-wrapper');
 
 let downloadAbortController = null;
 let lastFocusedElement = null;
@@ -213,6 +229,39 @@ downloadBackdrop.addEventListener('click', (e) => {
 downloadStartLine.addEventListener('input', updateDownloadPreview);
 downloadEndLine.addEventListener('input', updateDownloadPreview);
 downloadExecute.addEventListener('click', executeDownload);
+
+// Advanced search dropdown handlers
+advancedSearchBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openAdvancedSearchDropdown();
+});
+
+advancedSearchClose.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeAdvancedSearchDropdown();
+});
+
+addIncludeTermBtn.addEventListener('click', () => addIncludeTerm());
+addExcludeTermBtn.addEventListener('click', () => addExcludeTerm());
+
+function openAdvancedSearchDropdown() {
+    advancedSearchDropdown.classList.remove('hidden');
+    advancedSearchDropdown.classList.add('visible');
+    
+    setTimeout(() => {
+        const firstInput = advancedSearchTermsContainer.querySelector('.term-input');
+        if (firstInput) {
+            firstInput.focus();
+        } else {
+            addIncludeTermBtn.focus();
+        }
+    }, 50);
+}
+
+function closeAdvancedSearchDropdown() {
+    advancedSearchDropdown.classList.add('hidden');
+    advancedSearchDropdown.classList.remove('visible');
+}
 
 // Custom dropdown events
 linesPerPageDropdown.querySelector('.custom-dropdown-trigger').addEventListener('click', (e) => {
@@ -809,6 +858,11 @@ async function startSearch() {
     const term = searchInput.value.trim();
     if (!term || isSearching) return;
 
+    if (advancedSearchMode && advancedSearchTerms.length > 0) {
+        await performAdvancedSearch();
+        return;
+    }
+
     if (searchAbortController) {
         searchAbortController.abort();
     }
@@ -859,6 +913,58 @@ async function startSearch() {
     }
 }
 
+async function performAdvancedSearch() {
+    if (isSearching) return;
+
+    if (advancedSearchAbortController) {
+        advancedSearchAbortController.abort();
+    }
+
+    searchTerm = searchInput.value.trim();
+    isSearching = true;
+    searchResults = [];
+    currentMatchIndex = -1;
+    loadedResultsCount = 0;
+    visibleIndices.clear();
+
+    searchProgressFill.style.strokeDashoffset = CIRCUMFERENCE;
+    searchProgressEl.classList.add('active');
+    clearSearchBtn.classList.remove('hidden');
+
+    advancedSearchAbortController = new AbortController();
+
+    try {
+        if (!searchWorker) {
+            initSearchWorker();
+        }
+
+        if (!searchWorker) {
+            await advancedSearchOnMainThread();
+        } else {
+            await advancedSearchWithWorker();
+        }
+
+        if (totalLines === 0 || searchResults.length === 0) {
+            updateSearchUIState(false);
+            closeDrawer();
+        } else {
+            updateSearchUIState(true);
+
+            currentMatchIndex = -1;
+            await navigateMatch(1);
+            await populateSearchResults();
+            openDrawer();
+        }
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            console.error('Advanced search error:', error);
+        }
+    } finally {
+        isSearching = false;
+        searchProgressEl.classList.remove('active');
+    }
+}
+
 async function searchWithWorker(term) {
     const jobId = ++searchJobId;
     const LINES_PER_BATCH = 5000;
@@ -869,16 +975,67 @@ async function searchWithWorker(term) {
         pendingSearchJobs.set(jobId, { resolve, reject, results: [] });
     });
 
-    searchWorker.postMessage({
-        type: 'init',
-        id: jobId,
-        term,
-        matchWholeWord,
-        matchCase
-    });
+    if (advancedSearchMode) {
+        searchWorker.postMessage({
+            type: 'init-advanced',
+            id: jobId,
+            terms: advancedSearchTerms
+        });
+    } else {
+        searchWorker.postMessage({
+            type: 'init',
+            id: jobId,
+            term,
+            matchWholeWord,
+            matchCase
+        });
+    }
 
     for (let batchStart = 0; batchStart < totalLines; batchStart += LINES_PER_BATCH) {
         if (searchAbortController.signal.aborted) {
+            throw new Error('AbortError');
+        }
+
+        const batchEnd = Math.min(batchStart + LINES_PER_BATCH, totalLines);
+        const startPos = lineIndex[batchStart];
+        const endPos = lineIndex[batchEnd] || currentFile.size;
+        const chunk = await currentFile.slice(startPos, endPos).text();
+
+        searchWorker.postMessage({
+            type: 'chunk',
+            id: jobId,
+            chunk,
+            startLine: batchStart
+        });
+
+        processedBatches++;
+        const progress = Math.round((processedBatches / totalBatches) * 100);
+        searchProgressFill.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress / 100);
+    }
+
+    searchWorker.postMessage({ type: 'done', id: jobId });
+
+    searchResults = await jobPromise;
+}
+
+async function advancedSearchWithWorker() {
+    const jobId = ++searchJobId;
+    const LINES_PER_BATCH = 5000;
+    let totalBatches = Math.ceil(totalLines / LINES_PER_BATCH);
+    let processedBatches = 0;
+
+    const jobPromise = new Promise((resolve, reject) => {
+        pendingSearchJobs.set(jobId, { resolve, reject, results: [] });
+    });
+
+    searchWorker.postMessage({
+        type: 'init-advanced',
+        id: jobId,
+        terms: advancedSearchTerms
+    });
+
+    for (let batchStart = 0; batchStart < totalLines; batchStart += LINES_PER_BATCH) {
+        if (advancedSearchAbortController.signal.aborted) {
             throw new Error('AbortError');
         }
 
@@ -937,6 +1094,85 @@ async function searchOnMainThread(term) {
     }
 }
 
+async function advancedSearchOnMainThread() {
+    const includes = advancedSearchTerms.filter(t => t.type === 'include');
+    const excludes = advancedSearchTerms.filter(t => t.type === 'exclude');
+
+    const LINES_PER_BATCH = 5000;
+    let totalBatches = Math.ceil(totalLines / LINES_PER_BATCH);
+    let processedBatches = 0;
+
+    for (let batchStart = 0; batchStart < totalLines; batchStart += LINES_PER_BATCH) {
+        if (advancedSearchAbortController.signal.aborted) {
+            throw new Error('AbortError');
+        }
+
+        const batchEnd = Math.min(batchStart + LINES_PER_BATCH, totalLines);
+        const startPos = lineIndex[batchStart];
+        const endPos = lineIndex[batchEnd] || currentFile.size;
+        const chunk = await currentFile.slice(startPos, endPos).text();
+
+        const lines = chunk.split(/\r?\n/);
+        lines.forEach((line, idx) => {
+            let excluded = false;
+
+            for (const term of excludes) {
+                let flags = term.caseSensitive ? '' : 'i';
+                let pattern = escapeRegExp(term.term);
+                if (term.wholeWord) pattern = `\\b${pattern}\\b`;
+                const regex = new RegExp(pattern, flags);
+                if (regex.test(line)) {
+                    excluded = true;
+                    break;
+                }
+            }
+
+            if (excluded) return;
+
+            if (includes.length === 0) {
+                searchResults.push(batchStart + idx);
+                return;
+            }
+
+            let matched = false;
+            for (const term of includes) {
+                let flags = term.caseSensitive ? '' : 'i';
+                let pattern = escapeRegExp(term.term);
+                if (term.wholeWord) pattern = `\\b${pattern}\\b`;
+                const regex = new RegExp(pattern, flags);
+                if (regex.test(line)) {
+                    if (term.operator === 'OR') {
+                        matched = true;
+                        break;
+                    }
+                } else {
+                    if (term.operator === 'AND') {
+                        matched = false;
+                        break;
+                    }
+                }
+            }
+
+            if (includes.every(t => t.operator === 'AND')) {
+                if (includes.every(term => {
+                    let flags = term.caseSensitive ? '' : 'i';
+                    let pattern = escapeRegExp(term.term);
+                    if (term.wholeWord) pattern = `\\b${pattern}\\b`;
+                    return new RegExp(pattern, flags).test(line);
+                })) {
+                    searchResults.push(batchStart + idx);
+                }
+            } else if (matched) {
+                searchResults.push(batchStart + idx);
+            }
+        });
+
+        processedBatches++;
+        const progress = Math.round((processedBatches / totalBatches) * 100);
+        searchProgressFill.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress / 100);
+    }
+}
+
 function clearSearch() {
     if (searchAbortController) {
         searchAbortController.abort();
@@ -966,6 +1202,7 @@ function clearSearch() {
         searchScrollHandler = null;
     }
 
+    resetToSimpleSearch();
     terminateSearchWorker();
     loadPage(currentPage);
 }
@@ -1532,6 +1769,258 @@ async function readLinesWithProgress(startLine, endLine) {
     }
 
     return lines;
+}
+
+// Advanced Search Dropdown
+function openAdvancedSearchDropdown() {
+    advancedSearchDropdown.classList.remove('hidden');
+    advancedSearchDropdown.classList.add('visible');
+    
+    setTimeout(() => {
+        const firstInput = advancedSearchTermsContainer.querySelector('.term-input');
+        if (firstInput) {
+            firstInput.focus();
+        } else {
+            addIncludeTermBtn.focus();
+        }
+    }, 50);
+}
+
+function closeAdvancedSearchDropdown() {
+    advancedSearchDropdown.classList.add('hidden');
+    advancedSearchDropdown.classList.remove('visible');
+}
+
+function setupAdvancedModeHandlers() {
+    searchInputWrapper.addEventListener('click', openAdvancedSearchDropdown);
+    advancedSearchBtn.classList.add('hidden');
+}
+
+function clearAdvancedModeHandlers() {
+    searchInputWrapper.removeEventListener('click', openAdvancedSearchDropdown);
+    advancedSearchBtn.classList.remove('hidden');
+    closeAdvancedSearchDropdown();
+}
+
+document.addEventListener('click', (e) => {
+    if (advancedSearchMode && !e.target.closest('.search-bar-wrapper')) {
+        closeAdvancedSearchDropdown();
+    }
+});
+
+function createTermRow(config) {
+    const row = termRowTemplate.content.cloneNode(true);
+    const termRow = row.querySelector('.term-row');
+    const includeCheckbox = row.querySelector('.term-include-checkbox');
+    const termInput = row.querySelector('.term-input');
+    const wholeWordCheckbox = row.querySelector('.term-whole-word');
+    const caseSensitiveCheckbox = row.querySelector('.term-case-sensitive');
+    const operatorSelect = row.querySelector('.term-operator');
+    const deleteBtn = row.querySelector('.term-delete');
+    const toggle = row.querySelector('.term-toggle');
+
+    const id = ++termIdCounter;
+
+    if (config) {
+        includeCheckbox.checked = config.type === 'include';
+        termInput.value = config.term || '';
+        wholeWordCheckbox.checked = config.wholeWord || false;
+        caseSensitiveCheckbox.checked = config.caseSensitive || false;
+        operatorSelect.value = config.operator || 'AND';
+    } else {
+        includeCheckbox.checked = true;
+    }
+
+    if (includeCheckbox.checked) {
+        toggle.classList.add('include');
+        toggle.classList.remove('exclude');
+    } else {
+        toggle.classList.add('exclude');
+        toggle.classList.remove('include');
+    }
+
+    if (wholeWordCheckbox.checked) {
+        wholeWordCheckbox.parentElement.classList.add('checked');
+    }
+    if (caseSensitiveCheckbox.checked) {
+        caseSensitiveCheckbox.parentElement.classList.add('checked');
+    }
+
+    includeCheckbox.addEventListener('change', () => {
+        if (includeCheckbox.checked) {
+            toggle.classList.add('include');
+            toggle.classList.remove('exclude');
+        } else {
+            toggle.classList.add('exclude');
+            toggle.classList.remove('include');
+        }
+        updateAdvancedSearchState();
+    });
+
+    termInput.addEventListener('input', () => {
+        updateAdvancedSearchState();
+    });
+
+    termInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const rows = advancedSearchTermsContainer.querySelectorAll('.term-row');
+            let foundCurrent = false;
+            for (const r of rows) {
+                if (foundCurrent) {
+                    const input = r.querySelector('.term-input');
+                    if (input) {
+                        input.focus();
+                        return;
+                    }
+                }
+                if (r === termRow) foundCurrent = true;
+            }
+            executeAdvancedSearch();
+        }
+    });
+
+    wholeWordCheckbox.addEventListener('change', () => {
+        wholeWordCheckbox.parentElement.classList.toggle('checked', wholeWordCheckbox.checked);
+        updateAdvancedSearchState();
+    });
+
+    caseSensitiveCheckbox.addEventListener('change', () => {
+        caseSensitiveCheckbox.parentElement.classList.toggle('checked', caseSensitiveCheckbox.checked);
+        updateAdvancedSearchState();
+    });
+
+    operatorSelect.addEventListener('change', () => {
+        updateAdvancedSearchState();
+    });
+
+    deleteBtn.addEventListener('click', () => {
+        termRow.remove();
+        updateAdvancedSearchState();
+        updateOperatorVisibility();
+        updateEmptyState();
+    });
+
+    return { id, element: termRow };
+}
+
+function updateAdvancedSearchState() {
+    const rows = advancedSearchTermsContainer.querySelectorAll('.term-row');
+    advancedSearchTerms = [];
+
+    rows.forEach((row, index) => {
+        const includeCheckbox = row.querySelector('.term-include-checkbox');
+        const termInput = row.querySelector('.term-input');
+        const wholeWordCheckbox = row.querySelector('.term-whole-word');
+        const caseSensitiveCheckbox = row.querySelector('.term-case-sensitive');
+        const operatorSelect = row.querySelector('.term-operator');
+
+        const term = termInput.value.trim();
+        if (term) {
+            advancedSearchTerms.push({
+                type: includeCheckbox.checked ? 'include' : 'exclude',
+                term: term,
+                wholeWord: wholeWordCheckbox.checked,
+                caseSensitive: caseSensitiveCheckbox.checked,
+                operator: operatorSelect.value
+            });
+        }
+    });
+}
+
+function updateEmptyState() {
+    const rows = advancedSearchTermsContainer.querySelectorAll('.term-row');
+    const emptyState = advancedSearchTermsContainer.querySelector('.advanced-search-terms-empty');
+
+    if (rows.length === 0) {
+        if (!emptyState) {
+            const emptyEl = document.createElement('div');
+            emptyEl.className = 'advanced-search-terms-empty';
+            emptyEl.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <p>Add search terms to build your query</p>
+            `;
+            advancedSearchTermsContainer.appendChild(emptyEl);
+        }
+    } else if (emptyState) {
+        emptyState.remove();
+    }
+}
+
+function updateOperatorVisibility() {
+    const rows = advancedSearchTermsContainer.querySelectorAll('.term-row');
+    rows.forEach((row, index) => {
+        const operator = row.querySelector('.term-operator');
+        if (index === 0) {
+            operator.classList.add('hidden');
+        } else {
+            operator.classList.remove('hidden');
+        }
+    });
+}
+
+function addIncludeTerm(config) {
+    updateEmptyState();
+    const { id, element } = createTermRow(config);
+    advancedSearchTermsContainer.appendChild(element);
+    updateOperatorVisibility();
+
+    const input = element.querySelector('.term-input');
+    input.focus();
+
+    updateAdvancedSearchState();
+}
+
+function addExcludeTerm(config) {
+    updateEmptyState();
+    const termConfig = config || { type: 'exclude' };
+    const { id, element } = createTermRow(termConfig);
+    advancedSearchTermsContainer.appendChild(element);
+    updateOperatorVisibility();
+
+    const input = element.querySelector('.term-input');
+    input.focus();
+
+    updateAdvancedSearchState();
+}
+
+function clearAdvancedSearchModal() {
+    advancedSearchTermsContainer.innerHTML = '';
+    advancedSearchTerms = [];
+    updateEmptyState();
+}
+
+function executeAdvancedSearch() {
+    updateAdvancedSearchState();
+
+    if (advancedSearchTerms.length === 0) {
+        closeAdvancedSearchDropdown();
+        return;
+    }
+
+    const firstTerm = advancedSearchTerms[0];
+    searchInput.value = firstTerm.term;
+    matchWholeWord = firstTerm.wholeWord;
+    matchCase = firstTerm.caseSensitive;
+
+    wholeWordCheckbox.checked = matchWholeWord;
+    matchCaseCheckbox.checked = matchCase;
+    updateSearchOptionStyles();
+
+    advancedSearchMode = true;
+    setupAdvancedModeHandlers();
+    
+    closeAdvancedSearchDropdown();
+    startSearch();
+}
+
+function resetToSimpleSearch() {
+    advancedSearchMode = false;
+    advancedSearchTerms = [];
+    clearAdvancedModeHandlers();
 }
 
 // UI Helpers

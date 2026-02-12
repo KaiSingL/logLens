@@ -42,55 +42,100 @@
                     <circle class="progress-bg" cx="12" cy="12" r="10" />
                     <circle id="search-progress-fill" class="progress-fill" cx="12" cy="12" r="10" />
                 </svg>
-                <div class="search-input-wrapper">
-                    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"/>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                    </svg>
-                    <input type="text" id="search-input" class="search-input" placeholder="Search in file..." autocomplete="off">
-                    <div class="search-actions">
-                        <label class="search-option" title="Match whole word">
-                            <input type="checkbox" id="option-whole-word">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="7" cy="12" r="3"/>
-                                <path d="M10 9v6"/>
-                                <circle cx="17" cy="12" r="3"/>
-                                <path d="M14 7v8"/>
-                            </svg>
-                        </label>
-                        <label class="search-option" title="Match case">
-                            <input type="checkbox" id="option-match-case">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="m2 16 4.039-9.69a.5 5 0 0 1 .923 0L11 16"/>
-                                <path d="M22 9v7"/>
-                                <path d="M3.304 13h6.392"/>
-                                <circle cx="18.5" cy="12.5" r="3.5"/>
-                            </svg>
-                        </label>
-                        <button id="clear-search" class="clear-search-btn hidden" title="Clear search">
+                <div class="search-bar-wrapper">
+                    <div class="search-input-wrapper" id="search-input-wrapper">
+                        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        <input type="text" id="search-input" class="search-input" placeholder="Search in file..." autocomplete="off">
+                        <div class="search-actions">
+                            <label class="search-option" title="Match whole word">
+                                <input type="checkbox" id="option-whole-word">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="7" cy="12" r="3"/>
+                                    <path d="M10 9v6"/>
+                                    <circle cx="17" cy="12" r="3"/>
+                                    <path d="M14 7v8"/>
+                                </svg>
+                            </label>
+                            <label class="search-option" title="Match case">
+                                <input type="checkbox" id="option-match-case">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="m2 16 4.039-9.69a.5 5 0 0 1 .923 0L11 16"/>
+                                    <path d="M22 9v7"/>
+                                    <path d="M3.304 13h6.392"/>
+                                    <circle cx="18.5" cy="12.5" r="3.5"/>
+                                </svg>
+                            </label>
+                            <button id="clear-search" class="clear-search-btn hidden" title="Clear search">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/>
+                                    <line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                            </button>
+                            <button id="advanced-search-btn" class="advanced-search-btn" title="Advanced Search">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2 5h20"/>
+                                    <path d="M6 12h12"/>
+                                    <path d="M9 19h6"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="match-nav-container" class="match-nav hidden">
+                        <div class="match-nav-input-group">
+                            <input id="match-counter-header" class="match-counter-input" type="number" min="1">
+                            <span class="match-counter-total">of <span id="match-total-header">0</span></span>
+                        </div>
+                        <span id="match-no-results-header" class="match-no-results hidden">No results</span>
+                        <div class="match-nav-buttons">
+                            <button id="btn-prev-match-header" class="btn btn-secondary btn-icon" title="Previous (Shift+Enter)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="18 15 12 9 6 15"/>
+                                </svg>
+                            </button>
+                            <button id="btn-next-match-header" class="btn btn-secondary btn-icon" title="Next (Enter)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="advanced-search-dropdown" class="search-dropdown hidden">
+                    <div class="search-dropdown-header">
+                        <span>Query Builder</span>
+                        <button id="advanced-search-close" class="dropdown-close-btn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"/>
                                 <line x1="6" y1="6" x2="18" y2="18"/>
                             </svg>
                         </button>
                     </div>
-                </div>
-                <div id="match-nav-container" class="match-nav hidden">
-                    <div class="match-nav-input-group">
-                        <input id="match-counter-header" class="match-counter-input" type="number" min="1">
-                        <span class="match-counter-total">of <span id="match-total-header">0</span></span>
+                    <div id="advanced-search-terms" class="search-dropdown-terms">
+                        <div class="advanced-search-terms-empty">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                            <p>Add terms and press Enter to search</p>
+                        </div>
                     </div>
-                    <span id="match-no-results-header" class="match-no-results hidden">No results</span>
-                    <div class="match-nav-buttons">
-                        <button id="btn-prev-match-header" class="btn btn-secondary btn-icon" title="Previous (Shift+Enter)">
+                    <div class="search-dropdown-footer">
+                        <button id="add-include-term" class="btn btn-secondary">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="18 15 12 9 6 15"/>
+                                <line x1="12" y1="5" x2="12" y2="19"/>
+                                <line x1="5" y1="12" x2="19" y2="12"/>
                             </svg>
+                            Add Include
                         </button>
-                        <button id="btn-next-match-header" class="btn btn-secondary btn-icon" title="Next (Enter)">
+                        <button id="add-exclude-term" class="btn btn-secondary">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="6 9 12 15 18 9"/>
+                                <line x1="5" y1="12" x2="19" y2="12"/>
                             </svg>
+                            Add Exclude
                         </button>
                     </div>
                 </div>
@@ -360,6 +405,82 @@
                     <span class="btn-spinner"></span>
                 </button>
             </div>
+        </div>
+    </div>
+
+    <template id="term-row-template">
+        <div class="term-row">
+            <div class="term-row-main">
+                <label class="term-toggle">
+                    <input type="checkbox" class="term-include-checkbox">
+                    <span class="term-toggle-label">Include</span>
+                </label>
+                <input type="text" class="term-input" placeholder="Enter search term...">
+                <label class="term-option" title="Whole word">
+                    <input type="checkbox" class="term-whole-word">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="7" cy="12" r="3"/>
+                        <path d="M10 9v6"/>
+                        <circle cx="17" cy="12" r="3"/>
+                        <path d="M14 7v8"/>
+                    </svg>
+                </label>
+                <label class="term-option" title="Case sensitive">
+                    <input type="checkbox" class="term-case-sensitive">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m2 16 4.039-9.69a.5 5 0 0 1 .923 0L11 16"/>
+                        <path d="M22 9v7"/>
+                        <path d="M3.304 13h6.392"/>
+                        <circle cx="18.5" cy="12.5" r="3.5"/>
+                    </svg>
+                </label>
+                <select class="term-operator">
+                    <option value="AND">AND</option>
+                    <option value="OR">OR</option>
+                </select>
+                <button class="term-delete" title="Remove term">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </template>
+
+    <div id="advanced-search-dropdown" class="search-dropdown hidden">
+        <div class="search-dropdown-header">
+            <span>Query Builder</span>
+            <button id="advanced-search-close" class="dropdown-close-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div id="advanced-search-terms" class="search-dropdown-terms">
+            <div class="advanced-search-terms-empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <p>Add terms and press Enter to search</p>
+            </div>
+        </div>
+        <div class="search-dropdown-footer">
+            <button id="add-include-term" class="btn btn-secondary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Add Include
+            </button>
+            <button id="add-exclude-term" class="btn btn-secondary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Add Exclude
+            </button>
         </div>
     </div>
 

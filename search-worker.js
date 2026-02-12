@@ -1,31 +1,89 @@
-// Search Worker - Performs chunk-based search in background
+// Search Worker - Handles both simple and advanced search
 
-let regex = null;
+let searchConfig = null;
 
 function escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function buildRegex(term, wholeWord, caseSensitive) {
+    let flags = caseSensitive ? '' : 'i';
+    let pattern = escapeRegExp(term);
+    if (wholeWord) pattern = `\\b${pattern}\\b`;
+    return new RegExp(pattern, flags);
+}
+
+function matchesAdvancedSearch(line, terms) {
+    const includes = terms.filter(t => t.type === 'include');
+    const excludes = terms.filter(t => t.type === 'exclude');
+
+    for (const term of excludes) {
+        const regex = buildRegex(term.term, term.wholeWord, term.caseSensitive);
+        if (regex.test(line)) {
+            return false;
+        }
+    }
+
+    if (includes.length === 0) {
+        return true;
+    }
+
+    const hasOR = includes.some(t => t.operator === 'OR');
+
+    if (!hasOR) {
+        for (const term of includes) {
+            const regex = buildRegex(term.term, term.wholeWord, term.caseSensitive);
+            if (!regex.test(line)) {
+                return false;
+            }
+        }
+        return true;
+    } else {
+        for (const term of includes) {
+            const regex = buildRegex(term.term, term.wholeWord, term.caseSensitive);
+            if (regex.test(line)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
 self.onmessage = function(event) {
-    const { type, id, term, matchWholeWord, matchCase, chunk, startLine } = event.data;
+    const { type, id, term, matchWholeWord, matchCase, terms, chunk, startLine } = event.data;
 
     if (type === 'init') {
-        let flags = matchCase ? '' : 'i';
-        let pattern = escapeRegExp(term);
-        if (matchWholeWord) pattern = `\\b${pattern}\\b`;
-        regex = new RegExp(pattern, flags);
+        searchConfig = {
+            type: 'simple',
+            regex: buildRegex(term, matchWholeWord, matchCase)
+        };
+        return;
+    }
+
+    if (type === 'init-advanced') {
+        searchConfig = {
+            type: 'advanced',
+            terms: terms
+        };
         return;
     }
 
     if (type === 'chunk') {
-        const { chunk, startLine } = event.data;
         const lines = chunk.split(/\r?\n/);
 
-        lines.forEach((line, idx) => {
-            if (regex.test(line)) {
-                self.postMessage({ type: 'result', id, lineNum: startLine + idx });
-            }
-        });
+        if (searchConfig.type === 'simple') {
+            lines.forEach((line, idx) => {
+                if (searchConfig.regex.test(line)) {
+                    self.postMessage({ type: 'result', id, lineNum: startLine + idx });
+                }
+            });
+        } else {
+            lines.forEach((line, idx) => {
+                if (matchesAdvancedSearch(line, searchConfig.terms)) {
+                    self.postMessage({ type: 'result', id, lineNum: startLine + idx });
+                }
+            });
+        }
         return;
     }
 
