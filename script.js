@@ -1893,7 +1893,8 @@ function createTermRow(config) {
         // Operator is now fixed to AND, no toggle functionality
     });
 
-    deleteBtn.addEventListener('click', () => {
+    deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         termRow.remove();
         updateAdvancedSearchState();
         updateEmptyState();
