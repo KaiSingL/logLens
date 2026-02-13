@@ -245,25 +245,6 @@ advancedSearchClose.addEventListener('click', (e) => {
 addIncludeTermBtn.addEventListener('click', () => addIncludeTerm());
 addExcludeTermBtn.addEventListener('click', () => addExcludeTerm());
 
-function openAdvancedSearchDropdown() {
-    advancedSearchDropdown.classList.remove('hidden');
-    advancedSearchDropdown.classList.add('visible');
-    
-    setTimeout(() => {
-        const firstInput = advancedSearchTermsContainer.querySelector('.term-input');
-        if (firstInput) {
-            firstInput.focus();
-        } else {
-            addIncludeTermBtn.focus();
-        }
-    }, 50);
-}
-
-function closeAdvancedSearchDropdown() {
-    advancedSearchDropdown.classList.add('hidden');
-    advancedSearchDropdown.classList.remove('visible');
-}
-
 // Custom dropdown events
 linesPerPageDropdown.querySelector('.custom-dropdown-trigger').addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1775,11 +1756,24 @@ function openAdvancedSearchDropdown() {
 
     advancedSearchDropdown.classList.remove('hidden');
     advancedSearchDropdown.classList.add('visible');
+    advancedSearchBtn.classList.add('active');
+    
+    setTimeout(() => {
+        const firstInput = advancedSearchTermsContainer.querySelector('.term-input');
+        if (firstInput) {
+            firstInput.focus();
+        } else {
+            addIncludeTermBtn.focus();
+        }
+    }, 50);
 }
 
 function closeAdvancedSearchDropdown() {
     advancedSearchDropdown.classList.add('hidden');
     advancedSearchDropdown.classList.remove('visible');
+    if (advancedSearchTerms.length === 0) {
+        advancedSearchBtn.classList.remove('active');
+    }
 }
 
 function setupAdvancedModeHandlers() {
@@ -1800,11 +1794,18 @@ function clearAdvancedModeHandlers() {
 
 function updateAdvancedButtonState() {
     const hasMainTerm = searchInput.value.trim().length > 0;
+    const hasDropdownTerms = advancedSearchTerms.length > 0;
+    const isDropdownOpen = advancedSearchDropdown.classList.contains('visible');
     advancedSearchBtn.disabled = !hasMainTerm;
+    if (hasDropdownTerms || isDropdownOpen) {
+        advancedSearchBtn.classList.add('active');
+    } else if (hasMainTerm) {
+        advancedSearchBtn.classList.remove('active');
+    }
 }
 
 document.addEventListener('click', (e) => {
-    if (advancedSearchMode) {
+    if (advancedSearchDropdown.classList.contains('visible')) {
         const inSearchBar = e.target.closest('.search-bar-wrapper');
         const inDropdown = e.target.closest('#advanced-search-dropdown');
         if (!inSearchBar && !inDropdown) {
