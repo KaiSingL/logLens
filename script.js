@@ -1201,6 +1201,7 @@ function updateSearchUIState(hasResults) {
             searchResultsTitleText.textContent = 'No results found';
             matchNavContainer.classList.remove('hidden');
             matchCounterHeader.classList.add('hidden');
+            document.querySelector('#match-nav-container .match-nav-input-group').classList.add('hidden');
             matchNoResultsHeader.classList.remove('hidden');
             document.querySelector('#match-nav-container .match-nav-buttons').classList.add('hidden');
         }
