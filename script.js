@@ -296,12 +296,6 @@ document.addEventListener('keydown', (e) => {
         clearSearch();
         return;
     }
-    if (e.key === 'b' || e.key === 'B') {
-        if (document.activeElement === searchInput || document.activeElement.tagName !== 'INPUT') {
-            e.preventDefault();
-            toggleDrawer();
-        }
-    }
     if (e.key === 'Enter' && e.shiftKey && searchResults.length > 0) {
         e.preventDefault();
         navigateMatch(-1);
