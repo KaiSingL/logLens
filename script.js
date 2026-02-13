@@ -911,6 +911,7 @@ async function startSearch() {
     } finally {
         isSearching = false;
         searchProgressEl.classList.remove('active');
+        advancedSearchMode = false;
     }
 }
 
@@ -942,8 +943,7 @@ async function performAdvancedSearch() {
                 type: 'include',
                 term: mainTerm,
                 wholeWord: matchWholeWord,
-                caseSensitive: matchCase,
-                operator: 'OR'
+                caseSensitive: matchCase
             });
         }
     }
@@ -977,6 +977,7 @@ async function performAdvancedSearch() {
     } finally {
         isSearching = false;
         searchProgressEl.classList.remove('active');
+        advancedSearchMode = false;
     }
 }
 
@@ -1830,20 +1831,8 @@ function createTermRow(config) {
         termInput.value = config.term || '';
         wholeWordCheckbox.checked = config.wholeWord || false;
         caseSensitiveCheckbox.checked = config.caseSensitive || false;
-        if (config.operator === 'OR') {
-            operatorToggle.classList.remove('and');
-            operatorToggle.classList.add('or');
-            operatorToggle.dataset.operator = 'OR';
-        } else {
-            operatorToggle.classList.add('and');
-            operatorToggle.classList.remove('or');
-            operatorToggle.dataset.operator = 'AND';
-        }
     } else {
         includeCheckbox.checked = true;
-        operatorToggle.classList.add('and');
-        operatorToggle.classList.remove('or');
-        operatorToggle.dataset.operator = 'AND';
     }
 
     if (includeCheckbox.checked) {
