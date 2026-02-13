@@ -28,25 +28,13 @@ function matchesAdvancedSearch(line, terms) {
         return true;
     }
 
-    const hasOR = includes.some(t => t.operator === 'OR');
-
-    if (!hasOR) {
-        for (const term of includes) {
-            const regex = buildRegex(term.term, term.wholeWord, term.caseSensitive);
-            if (!regex.test(line)) {
-                return false;
-            }
+    for (const term of includes) {
+        const regex = buildRegex(term.term, term.wholeWord, term.caseSensitive);
+        if (!regex.test(line)) {
+            return false;
         }
-        return true;
-    } else {
-        for (const term of includes) {
-            const regex = buildRegex(term.term, term.wholeWord, term.caseSensitive);
-            if (regex.test(line)) {
-                return true;
-            }
-        }
-        return false;
     }
+    return true;
 }
 
 self.onmessage = function(event) {

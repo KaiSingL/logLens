@@ -1149,35 +1149,12 @@ async function advancedSearchOnMainThread() {
                 return;
             }
 
-            let matched = false;
-            for (const term of includes) {
+            if (includes.every(term => {
                 let flags = term.caseSensitive ? '' : 'i';
                 let pattern = escapeRegExp(term.term);
                 if (term.wholeWord) pattern = `\\b${pattern}\\b`;
-                const regex = new RegExp(pattern, flags);
-                if (regex.test(line)) {
-                    if (term.operator === 'OR') {
-                        matched = true;
-                        break;
-                    }
-                } else {
-                    if (term.operator === 'AND') {
-                        matched = false;
-                        break;
-                    }
-                }
-            }
-
-            if (includes.every(t => t.operator === 'AND')) {
-                if (includes.every(term => {
-                    let flags = term.caseSensitive ? '' : 'i';
-                    let pattern = escapeRegExp(term.term);
-                    if (term.wholeWord) pattern = `\\b${pattern}\\b`;
-                    return new RegExp(pattern, flags).test(line);
-                })) {
-                    searchResults.push(batchStart + idx);
-                }
-            } else if (matched) {
+                return new RegExp(pattern, flags).test(line);
+            })) {
                 searchResults.push(batchStart + idx);
             }
         });
@@ -1929,12 +1906,7 @@ function createTermRow(config) {
     });
 
     operatorToggle.addEventListener('click', () => {
-        const currentOp = operatorToggle.dataset.operator || 'AND';
-        const newOp = currentOp === 'AND' ? 'OR' : 'AND';
-        operatorToggle.dataset.operator = newOp;
-        operatorToggle.classList.remove('and', 'or');
-        operatorToggle.classList.add(newOp.toLowerCase());
-        updateAdvancedSearchState();
+        // Operator is now fixed to AND, no toggle functionality
     });
 
     deleteBtn.addEventListener('click', () => {
@@ -1963,8 +1935,7 @@ function updateAdvancedSearchState() {
                 type: includeCheckbox.checked ? 'include' : 'exclude',
                 term: term,
                 wholeWord: wholeWordCheckbox.checked,
-                caseSensitive: caseSensitiveCheckbox.checked,
-                operator: operatorToggle.dataset.operator || 'AND'
+                caseSensitive: caseSensitiveCheckbox.checked
             });
         }
     });
