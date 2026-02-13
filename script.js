@@ -1895,6 +1895,7 @@ function createTermRow(config) {
 
     deleteBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        termInput.blur();
         termRow.remove();
         updateAdvancedSearchState();
         updateEmptyState();
