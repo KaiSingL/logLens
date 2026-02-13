@@ -1465,7 +1465,6 @@ a:hover {
 }
 
 .search-result-item:hover {
-  border-color: var(--color-accent);
   background: var(--color-accent-muted);
 }
 
@@ -1919,11 +1918,6 @@ a:hover {
     border-radius: var(--radius-md);
     padding: var(--spacing-sm);
     transition: all var(--transition-fast);
-}
-
-.term-row:hover {
-    border-color: var(--color-accent);
-    box-shadow: 0 0 0 3px var(--color-accent-muted);
 }
 
 .term-row-main {
