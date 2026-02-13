@@ -846,6 +846,10 @@ async function startSearch() {
     loadedResultsCount = 0;
     visibleIndices.clear();
 
+    searchResultsItems.innerHTML = '';
+    clearVisibilityObservers();
+    lazyLoadIndicator.classList.add('hidden');
+
     searchProgressFill.style.strokeDashoffset = CIRCUMFERENCE;
     searchProgressEl.classList.add('active');
     clearSearchBtn.classList.remove('hidden');
@@ -899,6 +903,10 @@ async function performAdvancedSearch() {
     currentMatchIndex = -1;
     loadedResultsCount = 0;
     visibleIndices.clear();
+
+    searchResultsItems.innerHTML = '';
+    clearVisibilityObservers();
+    lazyLoadIndicator.classList.add('hidden');
 
     searchProgressFill.style.strokeDashoffset = CIRCUMFERENCE;
     searchProgressEl.classList.add('active');
@@ -1161,6 +1169,7 @@ function updateSearchUIState(hasResults) {
         
         if (searchResults.length === 0 && searchTerm) {
             searchResultsTitleText.textContent = 'No results found';
+            searchResultsItems.innerHTML = '';
             matchNavContainer.classList.remove('hidden');
             matchCounterHeader.classList.add('hidden');
             document.querySelector('#match-nav-container .match-nav-input-group').classList.add('hidden');
