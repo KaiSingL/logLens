@@ -1747,13 +1747,6 @@ async function readLinesWithProgress(startLine, endLine) {
 
 // Advanced Search Dropdown
 function openAdvancedSearchDropdown() {
-    const mainTerm = searchInput.value.trim();
-    if (!mainTerm) {
-        searchInput.classList.add('error');
-        setTimeout(() => searchInput.classList.remove('error'), 300);
-        return;
-    }
-
     advancedSearchDropdown.classList.remove('hidden');
     advancedSearchDropdown.classList.add('visible');
     advancedSearchBtn.classList.add('active');
@@ -1796,7 +1789,7 @@ function updateAdvancedButtonState() {
     const hasMainTerm = searchInput.value.trim().length > 0;
     const hasDropdownTerms = advancedSearchTerms.length > 0;
     const isDropdownOpen = advancedSearchDropdown.classList.contains('visible');
-    advancedSearchBtn.disabled = !hasMainTerm;
+    advancedSearchBtn.disabled = false;
     if (hasDropdownTerms || isDropdownOpen) {
         advancedSearchBtn.classList.add('active');
     } else if (hasMainTerm) {
