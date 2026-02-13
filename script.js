@@ -292,10 +292,6 @@ document.addEventListener('keydown', (e) => {
         closeDownloadModal();
         return;
     }
-    if (e.key === 'Escape' && searchTerm) {
-        clearSearch();
-        return;
-    }
     if (e.key === 'Enter' && e.shiftKey && searchResults.length > 0) {
         e.preventDefault();
         navigateMatch(-1);
@@ -1142,37 +1138,9 @@ async function advancedSearchOnMainThread() {
 }
 
 function clearSearch() {
-    if (searchAbortController) {
-        searchAbortController.abort();
-    }
-
     searchTerm = '';
-    searchResults = [];
-    currentMatchIndex = -1;
-    isSearching = false;
-    loadedResultsCount = 0;
-    firstLoadedIndex = 0;
-    visibleIndices.clear();
-
     searchInput.value = '';
     clearSearchBtn.classList.add('hidden');
-    searchNav.classList.add('hidden');
-    matchNavContainer.classList.add('hidden');
-    matchCounterHeader.classList.remove('hidden');
-    matchNoResultsHeader.classList.add('hidden');
-    document.querySelector('#match-nav-container .match-nav-buttons').classList.remove('hidden');
-    lazyLoadIndicator.classList.add('hidden');
-    searchProgressFill.style.strokeDashoffset = CIRCUMFERENCE;
-    searchProgressEl.classList.remove('active');
-
-    if (searchScrollHandler) {
-        searchResultsItems.removeEventListener('scroll', searchScrollHandler);
-        searchScrollHandler = null;
-    }
-
-    resetToSimpleSearch();
-    terminateSearchWorker();
-    loadPage(currentPage);
 }
 
 // Search UI State Management
