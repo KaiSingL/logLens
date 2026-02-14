@@ -5,8 +5,6 @@
 const CHUNK_SIZE = 1024 * 1024; // 1MB chunks
 const INITIAL_BATCH_SIZE = 200; // Initial results to display (sliding window)
 const SLIDING_WINDOW_SIZE = 300; // Maximum items to keep in DOM
-const LAZY_LOAD_BATCH_SIZE = 100; // Additional results per scroll
-const LAZY_LOAD_THRESHOLD = 100; // px from bottom to trigger load
 const VISIBILITY_ROOT_MARGIN = '150px';
 const VISIBILITY_THRESHOLD = 0;
 const CIRCUMFERENCE = 62.83; // 2 * π * 10 for circular progress
@@ -33,7 +31,8 @@ let syntaxHighlightingEnabled = true; // One Dark syntax highlighting (default: 
 let matchWholeWord = false; // Match whole word only
 let matchCase = false; // Match case sensitive
 let drawerVisible = false; // Drawer visibility state
-let searchScrollHandler = null;
+let currentSearchId = 0;
+let isLoadingBatch = false;
 
 // Prism.js Web Worker for non-blocking highlighting
 let prismWorker = null;
@@ -79,6 +78,7 @@ const btnPrevMatchHeader = document.getElementById('btn-prev-match-header');
 const btnNextMatchHeader = document.getElementById('btn-next-match-header');
 const matchTotalHeader = document.getElementById('match-total-header');
 const matchTotalDrawer = document.getElementById('match-total-drawer');
+const searchResultsList = document.getElementById('search-results-list');
 const searchResultsItems = document.getElementById('search-results-items');
 const searchResultsTitleText = document.getElementById('search-results-title-text');
 const lazyLoadIndicator = document.getElementById('lazy-load-indicator');
@@ -844,6 +844,7 @@ async function startSearch() {
     searchResults = [];
     currentMatchIndex = -1;
     loadedResultsCount = 0;
+    isLoadingBatch = false;
     visibleIndices.clear();
 
     searchResultsItems.innerHTML = '';
@@ -855,6 +856,7 @@ async function startSearch() {
     clearSearchBtn.classList.remove('hidden');
 
     searchAbortController = new AbortController();
+    const thisSearchId = ++currentSearchId;
 
     try {
         if (!searchWorker) {
@@ -875,7 +877,7 @@ async function startSearch() {
 
             currentMatchIndex = -1;
             await navigateMatch(1);
-            await populateSearchResults();
+            await populateSearchResults(thisSearchId);
             openDrawer();
         }
 
@@ -902,6 +904,7 @@ async function performAdvancedSearch() {
     searchResults = [];
     currentMatchIndex = -1;
     loadedResultsCount = 0;
+    isLoadingBatch = false;
     visibleIndices.clear();
 
     searchResultsItems.innerHTML = '';
@@ -913,6 +916,7 @@ async function performAdvancedSearch() {
     clearSearchBtn.classList.remove('hidden');
 
     advancedSearchAbortController = new AbortController();
+    const thisSearchId = ++currentSearchId;
 
     const mainTerm = searchInput.value.trim();
     if (mainTerm) {
@@ -946,7 +950,7 @@ async function performAdvancedSearch() {
 
             currentMatchIndex = -1;
             await navigateMatch(1);
-            await populateSearchResults();
+            await populateSearchResults(thisSearchId);
             openDrawer();
         }
     } catch (error) {
@@ -1316,27 +1320,41 @@ async function readLine(lineNum) {
 }
 
 // Populate search results drawer
-async function populateSearchResults() {
+async function populateSearchResults(searchId) {
     if (totalLines === 0 || searchResults.length === 0) {
         searchResultsItems.innerHTML = '<div class="empty-state"><p>No matches found</p></div>';
         return;
     }
 
+    if (searchId !== currentSearchId) return;
+
     searchResultsItems.innerHTML = '';
     loadedResultsCount = 0;
     firstLoadedIndex = 0;
+    isLoadingBatch = false;
     visibleIndices.clear();
 
-    await loadSearchResultBatch(0, INITIAL_BATCH_SIZE);
+    await loadSearchResultBatch(searchId, 0, INITIAL_BATCH_SIZE);
     initVisibilityObserver();
     setupItemObserver();
 }
 
 // Load a batch of search results
-async function loadSearchResultBatch(startIndex, count) {
+async function loadSearchResultBatch(searchId, startIndex, count) {
+    if (searchId !== currentSearchId) return;
+
     const endIndex = Math.min(startIndex + count, searchResults.length);
 
+    // Build a set of indices already in DOM to skip duplicates
+    const existingIndices = new Set();
+    searchResultsItems.querySelectorAll('.search-result-item').forEach(el => {
+        existingIndices.add(parseInt(el.dataset.index));
+    });
+
     for (let i = startIndex; i < endIndex; i++) {
+        // Skip items already in the DOM
+        if (existingIndices.has(i)) continue;
+
         const lineNum = searchResults[i];
         const line = await readLine(lineNum);
 
@@ -1395,56 +1413,31 @@ async function loadSearchResultBatch(startIndex, count) {
             updateActiveResultItem();
         });
 
-        searchResultsItems.appendChild(resultItem);
-    }
-
-    // Observe newly added items
-    if (visibilityObserver) {
-        const newItems = searchResultsItems.querySelectorAll('.search-result-item');
-        newItems.forEach(item => {
-            const index = parseInt(item.dataset.index);
-            if (index >= startIndex && index < endIndex) {
-                visibilityObserver.observe(item);
+        // Insert in sorted order by data-index
+        let inserted = false;
+        const children = searchResultsItems.children;
+        for (let c = 0; c < children.length; c++) {
+            const childIndex = parseInt(children[c].dataset.index);
+            if (childIndex > i) {
+                searchResultsItems.insertBefore(resultItem, children[c]);
+                inserted = true;
+                break;
             }
-        });
+        }
+        if (!inserted) {
+            searchResultsItems.appendChild(resultItem);
+        }
+
+        // Observe the newly added item immediately
+        if (visibilityObserver) {
+            visibilityObserver.observe(resultItem);
+        }
     }
 
-    loadedResultsCount = endIndex;
+    loadedResultsCount = Math.max(loadedResultsCount, endIndex);
     firstLoadedIndex = Math.min(firstLoadedIndex, startIndex);
 
-    trimSlidingWindow();
-
     lazyLoadIndicator.classList.toggle('hidden', loadedResultsCount >= searchResults.length);
-}
-
-// Trim sliding window to keep DOM size bounded
-function trimSlidingWindow() {
-    const items = searchResultsItems.querySelectorAll('.search-result-item');
-
-    if (items.length <= SLIDING_WINDOW_SIZE) return;
-
-    const keepStart = Math.max(0, currentMatchIndex - Math.floor(SLIDING_WINDOW_SIZE / 2));
-    const keepEnd = Math.min(searchResults.length, keepStart + SLIDING_WINDOW_SIZE);
-
-    items.forEach(item => {
-        const index = parseInt(item.dataset.index);
-        if (index < keepStart || index >= keepEnd) {
-            item.remove();
-            firstLoadedIndex = keepStart;
-        }
-    });
-}
-
-// Expand sliding window by loading more items around active match
-async function expandSlidingWindowAroundMatch() {
-    const items = searchResultsItems.querySelectorAll('.search-result-item');
-    const hasCurrentMatch = items.some(item => parseInt(item.dataset.index) === currentMatchIndex);
-
-    if (hasCurrentMatch) return;
-
-    if (loadedResultsCount < searchResults.length) {
-        await loadSearchResultBatch(loadedResultsCount, SLIDING_WINDOW_SIZE);
-    }
 }
 
 // Update active result item styling
@@ -1455,7 +1448,7 @@ async function updateActiveResultItem() {
         // Always check if item exists in DOM - it may have been trimmed by sliding window
         if (!item) {
             const loadStart = Math.max(0, currentMatchIndex - Math.floor(SLIDING_WINDOW_SIZE / 2));
-            await loadSearchResultBatch(loadStart, SLIDING_WINDOW_SIZE);
+            await loadSearchResultBatch(currentSearchId, loadStart, SLIDING_WINDOW_SIZE);
             item = searchResultsItems.querySelector(`.search-result-item[data-index="${currentMatchIndex}"]`);
         }
 
@@ -1497,7 +1490,7 @@ function updateLoadedResultsState() {
     }
     const indices = Array.from(items).map(el => parseInt(el.dataset.index));
     firstLoadedIndex = Math.min(...indices);
-    loadedResultsCount = Math.max(loadedResultsCount, Math.max(...indices) + 1);
+    loadedResultsCount = Math.max(...indices) + 1;
     lazyLoadIndicator.classList.toggle('hidden', loadedResultsCount >= searchResults.length);
 }
 
@@ -1520,15 +1513,38 @@ function trimResultsOutsideVisibleRange(visibleRange) {
 }
 
 async function handleVisibilityChange() {
+    if (isLoadingBatch) return;
     try {
         const visibleRange = getVisibleRange();
         if (visibleRange.count === 0) return;
+
         const loadBuffer = 50;
+
+        // Load more items below the visible range (scroll down)
         if (visibleRange.max >= loadedResultsCount - loadBuffer && loadedResultsCount < searchResults.length) {
+            isLoadingBatch = true;
             lazyLoadIndicator.classList.remove('hidden');
-            await loadSearchResultBatch(loadedResultsCount, SLIDING_WINDOW_SIZE);
-            lazyLoadIndicator.classList.add('hidden');
+            try {
+                await loadSearchResultBatch(currentSearchId, loadedResultsCount, SLIDING_WINDOW_SIZE);
+            } finally {
+                lazyLoadIndicator.classList.add('hidden');
+                isLoadingBatch = false;
+            }
         }
+
+        // Load more items above the visible range (scroll up)
+        if (visibleRange.min <= firstLoadedIndex + loadBuffer && firstLoadedIndex > 0) {
+            isLoadingBatch = true;
+            try {
+                const loadStart = Math.max(0, firstLoadedIndex - SLIDING_WINDOW_SIZE);
+                const loadCount = firstLoadedIndex - loadStart;
+                await loadSearchResultBatch(currentSearchId, loadStart, loadCount);
+            } finally {
+                isLoadingBatch = false;
+            }
+        }
+
+        // Trim items far outside the visible range to keep DOM bounded
         trimResultsOutsideVisibleRange(visibleRange);
     } catch (error) {
         console.debug('handleVisibilityChange failed:', error);
@@ -1544,7 +1560,7 @@ function initVisibilityObserver() {
             entry.isIntersecting ? visibleIndices.add(index) : visibleIndices.delete(index);
         });
         handleVisibilityChange();
-    }, { root: searchResultsItems, rootMargin: VISIBILITY_ROOT_MARGIN, threshold: VISIBILITY_THRESHOLD });
+    }, { root: searchResultsList, rootMargin: VISIBILITY_ROOT_MARGIN, threshold: VISIBILITY_THRESHOLD });
     searchResultsItems.querySelectorAll('.search-result-item').forEach(item => visibilityObserver.observe(item));
 }
 
