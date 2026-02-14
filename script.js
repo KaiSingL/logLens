@@ -92,7 +92,6 @@ let resizeHandle = document.getElementById('sidebar-resize-handle');
 // Advanced search state
 let advancedSearchTerms = [];
 let termIdCounter = 0;
-let advancedSearchMode = false;
 let advancedSearchAbortController = null;
 
 // Download modal elements
@@ -826,11 +825,16 @@ function updatePageButtons() {
 }
 
 // Search Functionality
+function hasAdvancedTerms() {
+    updateAdvancedSearchState();
+    return advancedSearchTerms.length > 0;
+}
+
 async function startSearch() {
     const term = searchInput.value.trim();
     if (!term || isSearching) return;
 
-    if (advancedSearchMode && advancedSearchTerms.length > 0) {
+    if (hasAdvancedTerms()) {
         await performAdvancedSearch();
         return;
     }
@@ -888,7 +892,6 @@ async function startSearch() {
     } finally {
         isSearching = false;
         searchProgressEl.classList.remove('active');
-        advancedSearchMode = false;
     }
 }
 
@@ -960,7 +963,6 @@ async function performAdvancedSearch() {
     } finally {
         isSearching = false;
         searchProgressEl.classList.remove('active');
-        advancedSearchMode = false;
     }
 }
 
@@ -974,7 +976,7 @@ async function searchWithWorker(term) {
         pendingSearchJobs.set(jobId, { resolve, reject, results: [] });
     });
 
-    if (advancedSearchMode) {
+    if (advancedSearchTerms.length > 0) {
         searchWorker.postMessage({
             type: 'init-advanced',
             id: jobId,
@@ -1987,15 +1989,13 @@ function executeAdvancedSearch() {
         return;
     }
 
-    advancedSearchMode = true;
     setupAdvancedModeHandlers();
-    
+
     closeAdvancedSearchDropdown();
     startSearch();
 }
 
 function resetToSimpleSearch() {
-    advancedSearchMode = false;
     advancedSearchTerms = [];
     clearAdvancedModeHandlers();
 }
