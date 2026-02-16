@@ -1888,6 +1888,11 @@ function createTermRow(config) {
         termRow.remove();
         updateAdvancedSearchState();
         updateEmptyState();
+
+        const remainingRows = advancedSearchTermsContainer.querySelectorAll('.term-row');
+        if (remainingRows.length === 0) {
+            resetToSimpleSearch();
+        }
     });
 
     return { id, element: termRow };
