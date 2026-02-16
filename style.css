@@ -2288,25 +2288,25 @@ a:hover {
 
 /* Scrollbar Styling */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+    width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-primary);
+    background: var(--color-bg-tertiary);
+    border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border-default);
-  border-radius: 5px;
+    background: var(--color-border-subtle);
+    border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-border-emphasis);
+    background: var(--color-border-default);
 }
 
 ::-webkit-scrollbar-corner {
-  background: var(--color-bg-primary);
+    background: var(--color-bg-tertiary);
 }
 
 /* Selection */
